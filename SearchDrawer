@@ -135,7 +135,7 @@ var sc=new L(CTX);sc.setOrientation(1);sc.setGravity(BOT);sc.setClipChildren(fal
 var deskS=new HorizontalScrollView(CTX);deskS.setHorizontalScrollBarEnabled(false);deskS.setOverScrollMode(2);deskS.setOnTouchListener(DT);
 var dw=new L(CTX);dw.setOrientation(0);pad(dw,DP.wpad[0],DP.wpad[1],DP.wpad[2],DP.wpad[3]);
 var dclk=new V.OnClickListener({onClick:function(v){
- var id=v.getTag();if(id==null)return;var c=LL.getConfiguration(),o=c.getHomeDesktopId();
+ var id=v.getTag();if(id==null)return;var c= getConfiguration(),o=c.getHomeDesktopId();
  try{srch.clearFocus();}catch(e){}try{LL.runAction(43);}catch(e){}
  H.post(new Runnable({run:function(){
   try{c.setHomeDesktopId(id);c.setCurrentDesktopId(id);CTX.startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}catch(e){}
@@ -203,7 +203,7 @@ function qb(ic,ac){
 var phb=qb(Phone?gIcon(Phone):android.R.drawable.sym_action_call,function(){if(Phone){clsF();try{CTX.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(Phone.cn).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}catch(e){}}});
 var apb=qb(android.R.drawable.ic_menu_sort_by_size,function(){if(md==="DRAWER")goHome();else goDrawer();});
 var swrp=new F(CTX);glass(swrp,100);
-var srch=new E(CTX);srch.setHint("Search...");srch.setTextColor(M.t);srch.setHintTextColor(M.h);srch.setSingleLine(true);pad(srch,SB.pad[0],SB.pad[1],SB.pad[2],SB.pad[3]);srch.setTextSize(SB.ts);srch.setBackground(null);srch.setGravity(CEN);swrp.addView(srch,flp(MP,MP));
+var srch=new E(CTX);srch.setHint("Theo...");srch.setTextColor(M.t);srch.setHintTextColor(M.h);srch.setSingleLine(true);pad(srch,SB.pad[0],SB.pad[1],SB.pad[2],SB.pad[3]);srch.setTextSize(SB.ts);srch.setBackground(null);srch.setGravity(CEN);swrp.addView(srch,flp(MP,MP));
 srow.addView(phb,lp(QB.sz,QB.sz));var slp=lpw(0,SB.h,1);slp.setMargins(SB.gap,0,SB.gap,0);srow.addView(swrp,slp);srow.addView(apb,lp(QB.sz,QB.sz));root.addView(srow,lp(MP,WC));
 var spc=new V(CTX);var bw=1-LY.sw;if(bw>0)root.addView(spc,lpw(MP,0,bw));
 
