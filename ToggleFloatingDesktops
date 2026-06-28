@@ -1,0 +1,69 @@
+//togglefloating
+try{
+
+imp("Tc","TAnim","TFloating");
+
+var c=getConfiguration(),
+    i=getEvent().getData(),
+    s=TFloating();
+
+if(!i){
+ if(s)LL.runAction(43);
+
+}else if(s&&c.getFloatingDesktopId()==i){
+ LL.runAction(43);
+
+}else{
+
+ var x=s&&c.getFloatingDesktopId()!=i;
+
+ c.setFloatingDesktopId(i);
+
+ try{
+  getFloatingScreen().getCurrentDesktop().setPosition(0,0,1,false);
+ }catch(e){}
+
+ LL.runAction(42);
+
+ if(x){
+
+  var sc=getFloatingScreen().getScreen(),
+      f=sc.getClass().getDeclaredField("this$0");
+  f.setAccessible(true);
+
+  var w=f.get(sc),
+      cf=w.getClass().getDeclaredField("mContentView");
+  cf.setAccessible(true);
+
+  var cv=cf.get(w),
+      v=cv?cv.getChildAt(0):null;
+
+  if(v){
+
+   v.setVisibility(4);
+
+   v.postDelayed(new java.lang.Runnable({run:function(){
+
+    v.setVisibility(0);
+
+    v.setAlpha(0);
+    v.setScaleX(.97);
+    v.setScaleY(.97);
+    v.setTranslationY(48);
+
+    TAnim(v,"ALPHA",1,"STIFFNESS_HIGH","DAMPING_RATIO_NO_BOUNCY");
+    TAnim(v,"SCALE_X",1,"STIFFNESS_MEDIUM","DAMPING_RATIO_MEDIUM_BOUNCY");
+    TAnim(v,"SCALE_Y",1,"STIFFNESS_MEDIUM","DAMPING_RATIO_MEDIUM_BOUNCY");
+    TAnim(v,"TRANSLATION_Y",0,"STIFFNESS_HIGH","DAMPING_RATIO_NO_BOUNCY");
+
+   }}),300);
+
+  }
+
+ }
+
+}
+
+}catch(e){
+ Tc(e+"\nL:"+e.lineNumber);
+}
