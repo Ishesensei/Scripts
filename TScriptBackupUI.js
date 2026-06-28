@@ -1,9 +1,7 @@
-// ============================================================  
-// ⚡ TSCRIPTS VERSION CONTROL - ARROWS & TIMELINE RESTORE  
+// TSCRIPTS VERSION CONTROL - ARROWS & TIMELINE RESTORE  
 // ============================================================  
   
 var BASE_ROOT = "/storage/emulated/0/Download/LL/Scripts";  
-  
 // ------------------------------------------------------------  
 // SAFE CLASS BINDING  
 // ------------------------------------------------------------  
