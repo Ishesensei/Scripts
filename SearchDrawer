@@ -1,0 +1,180 @@
+imp("Tc");
+
+try {
+    // ** 1. Minimal Imports
+    bindClass("android.widget.FrameLayout"); bindClass("android.widget.LinearLayout"); 
+    bindClass("android.widget.EditText"); bindClass("android.widget.TextView"); bindClass("android.widget.ImageView");
+    bindClass("android.graphics.Color"); bindClass("android.graphics.drawable.GradientDrawable"); 
+    bindClass("android.view.Gravity"); bindClass("android.view.View"); bindClass("android.text.TextWatcher"); 
+    bindClass("android.content.Intent"); bindClass("android.content.pm.PackageManager"); bindClass("android.content.ComponentName");
+    bindClass("java.lang.Runnable");
+
+    // MIUI Physics Imports
+    bindClass("miuix.system.animation.physics.SpringAnimation");
+    bindClass("miuix.system.animation.physics.SpringForce");
+    bindClass("miuix.system.animation.property.ViewProperty");
+
+    var ctx = LL.getContext(), pm = ctx.getPackageManager();
+
+    // ** 2. Reusable Aesthetic Engine (Exact match to your 5-button script)
+    function applyGlass(v) {
+        var gd = new GradientDrawable();
+        gd.setColor(Color.parseColor("#33FFFFFF"));
+        gd.setCornerRadius(60);
+        gd.setStroke(3, Color.parseColor("#55FFFFFF"));
+        v.setBackground(gd);
+        try { v.setBackgroundBlur(120, [60,60,60,60,60,60,60,60]); } catch(e){}
+        try { v.setMiShadow(Color.parseColor("#44000000"), 40, 0, 15); } catch(e){}
+    }
+
+    // Unified MIUI Spring Engine
+    function spring(v, prop, target, stiffness, damping, velocity) {
+        try {
+            var anim = new SpringAnimation(v, prop, target);
+            var pad = Math.max(200, Math.abs(target) * 1.5 + 100);
+            anim.setMaxValue(target + pad); anim.setMinValue(target - pad);
+            var force = new SpringForce(target);
+            force.setStiffness(stiffness); force.setDampingRatio(damping);
+            anim.setSpring(force);
+            if (velocity) anim.setStartVelocity(velocity);
+            anim.start();
+        } catch(e){}
+    }
+
+    // ** 3. High-Performance App Cache
+    var AppCache = {
+        apps: [],
+        init: function() {
+            var intent = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+            var list = pm.queryIntentActivities(intent, 0);
+            for (var i = 0; i < list.size(); i++) {
+                var ri = list.get(i), ai = ri.activityInfo, name = ri.loadLabel(pm).toString();
+                this.apps.push({ n: name, l: name.toLowerCase(), pkg: ai.packageName, cls: ai.name, icon: null });
+            }
+            this.apps.sort(function(a, b) { return a.n < b.n ? -1 : 1; });
+        },
+        getIcon: function(app) {
+            if (!app.icon) try { app.icon = pm.getActivityIcon(new ComponentName(app.pkg, app.cls)); } catch(e){}
+            return app.icon;
+        }
+    };
+    AppCache.init();
+
+    // ** 4. Layout Architecture (0.60 Height & Bottom-To-Top)
+    var root = new LinearLayout(ctx); root.setOrientation(1); root.setLayoutParams(new LinearLayout.LayoutParams(-1, -1));
+
+    // Top spacer (0.60 weight). Aligns content to BOTTOM.
+    var topArea = new LinearLayout(ctx); topArea.setOrientation(1); topArea.setGravity(Gravity.BOTTOM);
+    var results = new LinearLayout(ctx); results.setOrientation(1);
+    topArea.addView(results, new LinearLayout.LayoutParams(-1, -2));
+    root.addView(topArea, new LinearLayout.LayoutParams(-1, 0, 0.60));
+
+    // The Search Bar
+    var search = new EditText(ctx);
+    search.setHint("Search..."); search.setTextColor(Color.WHITE); search.setHintTextColor(Color.parseColor("#88FFFFFF"));
+    search.setSingleLine(true); search.setPadding(60, 50, 60, 50); search.setTextSize(18);
+    applyGlass(search);
+    
+    var sLp = new LinearLayout.LayoutParams(-1, -2);
+    sLp.setMargins(40, 20, 40, 20);
+    root.addView(search, sLp);
+
+    // Bottom spacer (0.40 weight)
+    var bottomArea = new View(ctx);
+    root.addView(bottomArea, new LinearLayout.LayoutParams(-1, 0, 0.40));
+
+    // ** 5. View Pool Construction (Bottom-To-Top Stacking)
+    var pool = [];
+    for (var i = 0; i < 10; i++) {
+        var pill = new LinearLayout(ctx);
+        pill.setOrientation(0); pill.setGravity(Gravity.CENTER_VERTICAL); pill.setPadding(40, 30, 40, 30);
+        applyGlass(pill);
+        
+        var pLp = new LinearLayout.LayoutParams(-1, -2);
+        pLp.setMargins(40, 10, 40, 10);
+        pill.setLayoutParams(pLp);
+
+        var icon = new ImageView(ctx); pill.addView(icon, new LinearLayout.LayoutParams(90, 90));
+        var text = new TextView(ctx); text.setTextColor(Color.WHITE); text.setTextSize(18); text.setPadding(40, 0, 0, 0); 
+        pill.addView(text, new LinearLayout.LayoutParams(-1, -2));
+
+        pill.setVisibility(View.GONE);
+        
+        // Jelly Squish Click Physics
+        pill.setOnTouchListener(new View.OnTouchListener({
+            onTouch: function(v, e) {
+                if (e.getAction() === 0) { // Press
+                    spring(v, ViewProperty.SCALE_X, 0.95, SpringForce.STIFFNESS_HIGH, 0.6);
+                    spring(v, ViewProperty.SCALE_Y, 0.95, SpringForce.STIFFNESS_HIGH, 0.6);
+                } else if (e.getAction() === 1 || e.getAction() === 3) { // Release (Jelly Bounce)
+                    spring(v, ViewProperty.SCALE_X, 1, SpringForce.STIFFNESS_HIGH, 0.2, 10);
+                    spring(v, ViewProperty.SCALE_Y, 1, SpringForce.STIFFNESS_HIGH, 0.2, -10);
+                }
+                return false;
+            }
+        }));
+
+        pool.push({ view: pill, icon: icon, label: text });
+        // Adds to index 0, pushing previous ones UP. Pool[0] is physically at the BOTTOM.
+        results.addView(pill, 0); 
+    }
+
+    // ** 6. Search Engine
+    search.addTextChangedListener(new TextWatcher({
+        beforeTextChanged: function(){}, onTextChanged: function(){},
+        afterTextChanged: function(s) {
+            var q = s.toString().toLowerCase().trim(), matches = [];
+            if (q !== "") {
+                for (var i = 0; i < AppCache.apps.length; i++) {
+                    if (AppCache.apps[i].l.indexOf(q) !== -1) {
+                        matches.push(AppCache.apps[i]);
+                        if (matches.length >= 10) break;
+                    }
+                }
+            }
+            
+            for (var i = 0; i < 10; i++) {
+                var item = pool[i];
+                if (i < matches.length) {
+                    var app = matches[i];
+                    item.icon.setImageDrawable(AppCache.getIcon(app));
+                    item.label.setText(app.n);
+                    
+                    if (item.view.getVisibility() === View.GONE) {
+                        item.view.setVisibility(View.VISIBLE);
+                        item.view.setTranslationY(800); // Start far down
+                        
+                        // Entry Spring (Bottom to Top stagger delay)
+                        item.view.postDelayed(new Runnable({ run: (function(v) { return function() {
+                            spring(v, ViewProperty.TRANSLATION_Y, 0, SpringForce.STIFFNESS_LOW, SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY);
+                        }})(item.view) }), i * 30);
+                    }
+                    
+                    item.view.setOnClickListener(new View.OnClickListener({ onClick: (function(a) { return function() {
+                        var intent = new Intent(Intent.ACTION_MAIN).setComponent(new ComponentName(a.pkg, a.cls)).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        ctx.startActivity(intent);
+                    }})(app)}));
+                } else {
+                    item.view.setVisibility(View.GONE);
+                }
+            }
+        }
+    }));
+
+    // ** 7. Auto-Keyboard & Focus (On Mount)
+    search.postDelayed(new Runnable({
+        run: function() {
+            search.requestFocus();
+            var imm = ctx.getSystemService("input_method");
+            if (imm) imm.showSoftInput(search, 1);
+        }
+    }), 100);
+
+    // Tap outside to close
+    root.setOnClickListener(new View.OnClickListener({ onClick: function() { try{ LL.runAction(43); }catch(e){} } }));
+
+    return root;
+
+} catch (e) {
+    var err = new android.widget.TextView(LL.getContext()); err.setText(e.toString()); err.setTextColor(android.graphics.Color.RED); return err;
+}
