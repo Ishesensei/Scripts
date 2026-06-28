@@ -1,109 +1,262 @@
-//SearchDrawer
-var C={containerId:100,maxResults:12,searchPosition:0.65,searchBar:{width:-1,height:220,textSize:18,margins:[16,16,16,8],radius:94,bgColor:"#88000000",hintColor:"#88FFFFFF",textColor:"#FFFFFF",padding:42,leftButton:{size:120,radius:42,blur:28,bgColor:"#66000000"},rightButton:{size:120,radius:42,blur:28,bgColor:"#66000000"},blur:58},panel:{width:0,margins:[0,-4,0,0],radius:72,gap:16,bgColor:"#00000000"},app:{height:-2,minHeight:280,paddingHoriz:44,paddingVert:34,bgColor:"#88000000",radius:56,iconRadius:24,textSize:20,textColor:"#FFFFFF",blurRadius:42,bwIcons:true,stroke:"#30FFFFFF"},desk:{width:320,height:420,bgColor:"#88000000",radius:36,blurRadius:40,header:{weight:0.40,height:200,textSize:18,padding:[40,18,0,12],bgColor:"#44000000"},body:{weight:0.60,height:150,textSize:16,minTextSize:11,maxTextSize:16,maxLines:3,padding:[20,12,20,12],textColor:"#FFFFFF"},footer:{weight:0.30,height:50,textSize:9,padding:[0,4,0,40],textColor:"#99FFFFFF",bgColor:"#22000000"}},anim:{entry:{duration:600,distance:15,stagger:44},press:{duration:80,scale:0.97},release:{duration:220,scale:1},nudge:{distance:20,duration:140},close:{duration:240,distance:10}},blur:{search:58,searchButton:28,desktop:40,result:42,panel:0},delay:{addChar:220,deleteChar:220}};
-bindClass("android.widget.FrameLayout");bindClass("android.widget.LinearLayout");bindClass("android.widget.ScrollView");bindClass("android.widget.HorizontalScrollView");bindClass("android.widget.EditText");bindClass("android.widget.TextView");bindClass("android.widget.ImageView");bindClass("android.graphics.Color");bindClass("android.graphics.Bitmap");bindClass("android.graphics.Canvas");bindClass("android.graphics.Paint");bindClass("android.graphics.RectF");bindClass("android.graphics.BitmapShader");bindClass("android.graphics.Shader");bindClass("android.graphics.Rect");bindClass("android.graphics.drawable.GradientDrawable");bindClass("android.view.Gravity");bindClass("android.view.View");bindClass("android.view.KeyEvent");bindClass("android.text.TextWatcher");bindClass("android.view.MotionEvent");bindClass("android.view.ViewTreeObserver");bindClass("java.lang.Runnable");bindClass("android.view.animation.DecelerateInterpolator");bindClass("android.graphics.ColorMatrix");bindClass("android.graphics.ColorMatrixColorFilter");bindClass("android.text.style.ForegroundColorSpan");bindClass("android.text.Spanned");bindClass("android.graphics.Typeface");bindClass("android.content.Intent");bindClass("android.os.Handler");
-var ctx=LL.getContext(),v=LL.getVariables(),dm=ctx.getResources().getDisplayMetrics();
-var MODE="01080";
-try{var m=v.getString("theme_mode");if(m&&m.length>=5)MODE=m;}catch(e){}
-function alpha(h,a){return"#"+a+h.substring(1);}
-var tc=[["#2C2C2E","#8E8E93","#1C1C1E","#FFFFFF"],["#0A2844","#0A84FF","#061A2E","#5AC8FA"],["#2D1F14","#C49A6C","#1A110B","#D4A574"],["#0F2A1A","#30D158","#0A1A10","#5AC8FA"],["#2A0F3A","#BF5AF2","#1A0824","#D48CFF"],["#2A0A0A","#FF453A","#1A0606","#FF6B60"],["#2A180A","#FF9F0A","#1A0F06","#FFB540"],["#0A1A2A","#5AC8FA","#06101A","#8AD8FF"],["#2A0A1A","#FF2D92","#1A0610","#FF5DAE"]];
-var b=parseInt(MODE.charAt(0))||0,ci=parseInt(MODE.charAt(1))||0,bo=parseInt(MODE.substring(2,5))||0;
-if(bo>0){C.blur.search=bo;C.blur.searchButton=bo;C.blur.desktop=bo;C.blur.result=bo;}
-var col=b===0?tc[ci]:tc[ci].map(function(c,i){if(i===0)return"#F2F2F7";if(i===1)return tc[ci][1];if(i===2)return"#E5E5EA";return i===3?tc[ci][3]:c;});
-var bg1=col[0],acc=col[1],bg2=col[2],txt=col[3];
-C.app.bgColor=alpha(bg1,"88");C.app.textColor=b==0?"#FFFFFF":"#000000";
-C.app.stroke="#44"+acc.substring(1);
-C.desk.bgColor=alpha(bg1,"88");C.desk.body.textColor=b==0?"#FFFFFF":"#000000";
-C.desk.header.bgColor="#44"+acc.substring(1);C.desk.footer.bgColor="#22"+acc.substring(1);
-C.searchBar.bgColor=alpha(bg1,"88");C.searchBar.textColor=b==0?"#FFFFFF":"#000000";
-C.searchBar.hintColor=b==0?"#88FFFFFF":"#88000000";
-C.searchBar.leftButton.bgColor=alpha(bg2,"66");C.searchBar.rightButton.bgColor=alpha(bg2,"66");
-C.panel.bgColor=alpha(bg1,"00");
-var sW=C.searchBar.width===-1?-1:Math.floor(dm.widthPixels*C.searchBar.width),rW=C.panel.width===0?-2:Math.floor(dm.widthPixels*C.panel.width),dW=C.desk.width<=1?Math.floor(dm.widthPixels*C.desk.width):C.desk.width;
-var DECEL=new DecelerateInterpolator(),TF_REG=Typeface.create("sans-serif",0),TF_MED=Typeface.create("sans-serif-medium",0);
-var C55=Color.parseColor("#55FFFFFF");
-var cache={apps:[],desktops:[]};try{var raw=v.getString("__sc");if(raw){var parsed=JSON.parse(raw);if(parsed.apps)cache.apps=parsed.apps;if(parsed.desktops)cache.desktops=parsed.desktops;}}catch(e){}
-var ITEMS={},ROUNDED={};var rc=0;var con=LL.getContainerById(C.containerId);if(con){var its=con.getAllItems();for(var i=0;i<its.length;i++){var it=its[i];try{if((""+it.getType())=="Shortcut"||(""+it.getType())=="2"){ITEMS[it.getId()]=it;}}catch(e){}}}
-if(!cache.apps.length){var a=[];if(con){var its=con.getAllItems();for(var i=0;i<its.length;i++){var it=its[i];try{if((""+it.getType())=="Shortcut"||(""+it.getType())=="2"){var label=""+it.getLabel();a.push({n:label,l:label.toLowerCase(),id:it.getId()});ITEMS[it.getId()]=it;}}catch(e){}}}cache.apps=a;try{v.edit().setString("__sc",JSON.stringify({apps:a,desktops:cache.desktops})).commit();}catch(e){}}
-if(!cache.desktops.length){var d=[];var ids=LL.getAllDesktops();for(var i=0;i<ids.length;i++){var id=ids.getAt(i),c=LL.getContainerById(id),name="Desktop "+id;try{if(c&&c.getName)name=c.getName();}catch(e){}d.push({id:id,name:name});}cache.desktops=d;try{v.edit().setString("__sc",JSON.stringify({apps:cache.apps,desktops:d})).commit();}catch(e){}}
-function getRoundedIcon(app){if(!app||!ITEMS[app.id])return null;var key=""+app.id;if(ROUNDED[key])return ROUNDED[key];try{var item=ITEMS[app.id];var bmp=item.getDefaultIcon().getBitmap();if(!bmp)return null;if(C.app.bwIcons){try{var cm=new ColorMatrix();cm.setSaturation(0);var pf=new Paint();pf.setColorFilter(new ColorMatrixColorFilter(cm));var ob=Bitmap.createBitmap(bmp.getWidth(),bmp.getHeight(),Bitmap.Config.ARGB_8888);var cv=new Canvas(ob);cv.drawBitmap(bmp,0,0,pf);bmp=ob;}catch(e){}}try{var o=Bitmap.createBitmap(bmp.getWidth(),bmp.getHeight(),Bitmap.Config.ARGB_8888);var cv=new Canvas(o);var pt=new Paint(Paint.ANTI_ALIAS_FLAG);pt.setShader(new BitmapShader(bmp,Shader.TileMode.CLAMP,Shader.TileMode.CLAMP));cv.drawRoundRect(new RectF(0,0,bmp.getWidth(),bmp.getHeight()),C.app.iconRadius,C.app.iconRadius,pt);ROUNDED[key]=o;rc++;if(rc>200){ROUNDED={};rc=0;}return o;}catch(e){return bmp;}}catch(e){return null;}}
-var pBgC=Color.parseColor(C.app.bgColor),pTxtC=Color.parseColor(C.app.textColor),dBgC=Color.parseColor(C.desk.bgColor),dTxtC=Color.parseColor(C.desk.body.textColor);
-var PHONE_ID=null,CAMERA_ID=null;for(var i=0;i<cache.apps.length;i++){var n=cache.apps[i].n.toLowerCase();if(!PHONE_ID&&(n=="phone"||n.indexOf("dial")>-1||n.indexOf("call")>-1))PHONE_ID=cache.apps[i].id;if(!CAMERA_ID&&(n=="camera"||n.indexOf("cam")>-1))CAMERA_ID=cache.apps[i].id;}
-function isFloatingOpen(){try{var s=getFloatingScreen().getScreen(),f=s.getClass().getDeclaredField("this$0");f.setAccessible(true);var w=f.get(s),o=w.getClass().getDeclaredField("mIsShown");o.setAccessible(true);return o.getBoolean(w);}catch(e){return false;}}
-function closeFloating(){if(!isFloatingOpen())return;wasVisible=false;try{var s=getFloatingScreen().getScreen(),f=s.getClass().getDeclaredField("this$0");f.setAccessible(true);var w=f.get(s),mField=w.getClass().getDeclaredField("mContentView");mField.setAccessible(true);var cv=mField.get(w);if(cv){var targetView=cv.getChildAt(0);if(targetView){targetView.setPivotX(targetView.getWidth()/2);targetView.setPivotY(0);targetView.animate().cancel();targetView.animate().translationY(C.anim.close.distance).setDuration(C.anim.close.duration).setInterpolator(DECEL).withEndAction(new java.lang.Runnable({run:function(){try{LL.runAction(43);}catch(e){}}})).start();return;}}}catch(e){}try{LL.runAction(43);}catch(e){}}
-var root=new LinearLayout(ctx);root.setOrientation(1);root.setLayoutParams(new LinearLayout.LayoutParams(-1,-1));root.setElevation(0);
-var top=new LinearLayout(ctx);top.setOrientation(1);top.setGravity(80|1);root.addView(top,new LinearLayout.LayoutParams(-1,0,C.searchPosition));
-var scroll=new ScrollView(ctx);scroll.setVerticalScrollBarEnabled(false);scroll.setOverScrollMode(0);scroll.setVisibility(8);scroll.setClipChildren(false);scroll.setClipToPadding(false);
-var pBg=new GradientDrawable();pBg.setColor(Color.parseColor(C.panel.bgColor));pBg.setCornerRadius(C.panel.radius);scroll.setBackground(pBg);
-var slp=new LinearLayout.LayoutParams(rW,-2);slp.gravity=1;slp.setMargins(C.panel.margins[2],C.panel.margins[0],C.panel.margins[3],C.panel.margins[1]);top.addView(scroll,slp);
-scroll.setOnTouchListener(new View.OnTouchListener({onTouch:function(v){v.getParent().requestDisallowInterceptTouchEvent(true);return false;}}));
-var results=new LinearLayout(ctx);results.setOrientation(1);results.setGravity(80);results.setPadding(0,0,0,C.panel.gap*2);
-var content=new LinearLayout(ctx);content.setOrientation(1);content.setGravity(80);content.addView(results,new LinearLayout.LayoutParams(-1,-2));scroll.addView(content,new FrameLayout.LayoutParams(-1,-2));
-var searchRow=new LinearLayout(ctx);searchRow.setOrientation(0);searchRow.setGravity(16);searchRow.setPadding(C.searchBar.margins[2],C.searchBar.margins[0],C.searchBar.margins[3],C.searchBar.margins[1]);
-var phoneBox=new FrameLayout(ctx);var boxBg=new GradientDrawable();boxBg.setColor(Color.parseColor(C.searchBar.leftButton.bgColor));boxBg.setCornerRadius(C.searchBar.leftButton.radius);phoneBox.setBackground(boxBg.getConstantState().newDrawable());phoneBox.setClipToOutline(true);try{phoneBox.setBackgroundBlur(C.blur.searchButton,[C.searchBar.leftButton.radius,C.searchBar.leftButton.radius,C.searchBar.leftButton.radius,C.searchBar.leftButton.radius,C.searchBar.leftButton.radius,C.searchBar.leftButton.radius,C.searchBar.leftButton.radius,C.searchBar.leftButton.radius]);phoneBox.addMiBackgroundBlendColor(C55,1);}catch(e){}
-var phoneWrap=new FrameLayout(ctx);phoneWrap.setLayoutParams(new FrameLayout.LayoutParams(72,72));var phone=new ImageView(ctx);if(PHONE_ID&&ITEMS[PHONE_ID]){var phoneIcon=getRoundedIcon({id:PHONE_ID});if(phoneIcon)phone.setImageBitmap(phoneIcon);}else{phone.setImageResource(android.R.drawable.sym_action_call);}
-phone.setScaleType(ImageView.ScaleType.CENTER_INSIDE);phone.setPadding(8,8,8,8);phoneWrap.addView(phone,new FrameLayout.LayoutParams(-1,-1));phoneBox.addView(phoneWrap,new FrameLayout.LayoutParams(-2,-2));
-phoneBox.setOnClickListener(new View.OnClickListener({onClick:function(){closeFloating();if(PHONE_ID&&ITEMS[PHONE_ID])try{ITEMS[PHONE_ID].launch();}catch(e){}}}));
-var camBox=new FrameLayout(ctx);var boxBg2=new GradientDrawable();boxBg2.setColor(Color.parseColor(C.searchBar.rightButton.bgColor));boxBg2.setCornerRadius(C.searchBar.rightButton.radius);camBox.setBackground(boxBg2.getConstantState().newDrawable());camBox.setClipToOutline(true);try{camBox.setBackgroundBlur(C.blur.searchButton,[C.searchBar.rightButton.radius,C.searchBar.rightButton.radius,C.searchBar.rightButton.radius,C.searchBar.rightButton.radius,C.searchBar.rightButton.radius,C.searchBar.rightButton.radius,C.searchBar.rightButton.radius,C.searchBar.rightButton.radius]);camBox.addMiBackgroundBlendColor(C55,1);}catch(e){}
-var camWrap=new FrameLayout(ctx);camWrap.setLayoutParams(new FrameLayout.LayoutParams(72,72));var cam=new ImageView(ctx);if(CAMERA_ID&&ITEMS[CAMERA_ID]){var camIcon=getRoundedIcon({id:CAMERA_ID});if(camIcon)cam.setImageBitmap(camIcon);}else{cam.setImageResource(android.R.drawable.ic_menu_camera);}
-cam.setScaleType(ImageView.ScaleType.CENTER_INSIDE);cam.setPadding(8,8,8,8);camWrap.addView(cam,new FrameLayout.LayoutParams(-1,-1));camBox.addView(camWrap,new FrameLayout.LayoutParams(-2,-2));
-camBox.setOnClickListener(new View.OnClickListener({onClick:function(){closeFloating();if(CAMERA_ID&&ITEMS[CAMERA_ID])try{ITEMS[CAMERA_ID].launch();}catch(e){}}}));
-var searchWrap=new FrameLayout(ctx);var sBg=new GradientDrawable();sBg.setColor(Color.parseColor(C.searchBar.bgColor));sBg.setCornerRadius(C.searchBar.radius);sBg.setStroke(3,Color.parseColor(C.app.stroke));searchWrap.setBackground(sBg);searchWrap.setClipToOutline(true);try{var sr=C.searchBar.radius;searchWrap.setBackgroundBlur(C.blur.search,[sr,sr,sr,sr,sr,sr,sr,sr]);searchWrap.addMiBackgroundBlendColor(C55,1);}catch(e){}
-var search=new EditText(ctx);search.setHint("Search");search.setSingleLine(true);search.setTextSize(C.searchBar.textSize||17);search.setTextColor(Color.parseColor(C.searchBar.textColor));search.setHintTextColor(Color.parseColor(C.searchBar.hintColor));search.setPadding(C.searchBar.padding,0,C.searchBar.padding,0);search.setBackground(null);
-try{search.setTextCursorDrawable(0);}catch(e){}try{var cF=bindClass("android.widget.TextView").getDeclaredField("mCursorDrawableRes");cF.setAccessible(true);cF.set(search,0);}catch(e){}
-searchWrap.addView(search,new FrameLayout.LayoutParams(-1,-1));
-search.setClickable(true);
-search.setOnClickListener(new View.OnClickListener({onClick:function(){search.setFocusable(true);search.setFocusableInTouchMode(true);search.requestFocus();var imm=ctx.getSystemService("input_method");if(imm){imm.showSoftInput(search,1);}if(scroll.getVisibility()==8){scroll.setVisibility(0);buildHomePanel();}}}));
-var sp1=new View(ctx);sp1.setLayoutParams(new LinearLayout.LayoutParams(16,-1));
-var sp2=new View(ctx);sp2.setLayoutParams(new LinearLayout.LayoutParams(16,-1));
-searchRow.addView(phoneBox,new LinearLayout.LayoutParams(C.searchBar.leftButton.size,C.searchBar.leftButton.size));
-searchRow.addView(sp1);
-searchRow.addView(searchWrap,new LinearLayout.LayoutParams(0,-1,1));
-searchRow.addView(sp2);
-searchRow.addView(camBox,new LinearLayout.LayoutParams(C.searchBar.rightButton.size,C.searchBar.rightButton.size));
-var lp=new LinearLayout.LayoutParams(sW,C.searchBar.height);lp.gravity=1;lp.setMargins(0,0,0,0);top.addView(searchRow,lp);
-var bottom=new View(ctx);var bw=1-C.searchPosition;if(bw>0)root.addView(bottom,new LinearLayout.LayoutParams(-1,0,bw));
-var nudging=false;function nudge(){if(nudging)return;nudging=true;searchWrap.animate().cancel();searchWrap.animate().translationX(C.anim.nudge.distance).setDuration(C.anim.nudge.duration).withEndAction(new java.lang.Runnable({run:function(){searchWrap.animate().translationX(-C.anim.nudge.distance).setDuration(C.anim.nudge.duration).withEndAction(new java.lang.Runnable({run:function(){searchWrap.animate().translationX(0).setDuration(C.anim.nudge.duration).withEndAction(new java.lang.Runnable({run:function(){nudging=false;}})).start();}})).start();}})).start();}
-function dropUp(v,delay){v.setTranslationY(C.anim.entry.distance);v.setAlpha(1);v.animate().cancel();v.animate().translationY(0).setDuration(C.anim.entry.duration).setStartDelay(delay||0).setInterpolator(DECEL).start();}
-function applyBlur(v,radius){try{if(radius>0){var r=radius||C.blur.result;v.setBackgroundBlur(r,[r,r,r,r,r,r,r,r]);v.addMiBackgroundBlendColor(C55,1);}}catch(e){}}
-function buildHomePanel(){results.removeAllViews();results.setGravity(17);var hScroll=new HorizontalScrollView(ctx);hScroll.setHorizontalScrollBarEnabled(false);hScroll.setOverScrollMode(0);hScroll.setPadding(0,0,0,10);var container=new LinearLayout(ctx);container.setOrientation(0);container.setGravity(80);container.setPadding(40,0,40,0);for(var i=0;i<cache.desktops.length;i++){var d=cache.desktops[i];var pill=buildDesktopPill(d.id,d.name,i,i*C.anim.entry.stagger);container.addView(pill);}hScroll.addView(container,new LinearLayout.LayoutParams(-2,-2));results.addView(hScroll,new LinearLayout.LayoutParams(-1,-2));}
-function buildDesktopPill(id,name,index,delay){var pill=new LinearLayout(ctx);pill.setOrientation(1);pill.setGravity(17);pill.setClipToOutline(true);var dLp=new LinearLayout.LayoutParams(dW,C.desk.height);dLp.setMargins(0,0,C.panel.gap,0);pill.setLayoutParams(dLp);var bg=new GradientDrawable();bg.setColor(dBgC);bg.setCornerRadius(C.desk.radius);bg.setStroke(2,Color.parseColor(C.app.stroke));pill.setBackground(bg);pill.setClipToOutline(true);applyBlur(pill,C.blur.desktop);var header=new TextView(ctx);header.setText(String(index+1));header.setTextColor(Color.WHITE);header.setTextSize(C.desk.header.textSize);header.setGravity(17);header.setTypeface(TF_MED);header.setMaxLines(1);var hp=C.desk.header.padding;header.setPadding(hp[2],hp[0],hp[3],hp[1]);var hBg=new GradientDrawable();hBg.setColor(Color.parseColor(C.desk.header.bgColor));hBg.setCornerRadius(C.desk.radius);hBg.setCornerRadii([C.desk.radius,C.desk.radius,0,0,0,0,C.desk.radius,C.desk.radius]);header.setBackground(hBg);var hLp=new LinearLayout.LayoutParams(-1,C.desk.header.height,C.desk.header.weight);pill.addView(header,hLp);var body=new TextView(ctx);body.setText(name);body.setTextColor(dTxtC);body.setTextSize(C.desk.body.textSize);body.setGravity(17);body.setTypeface(TF_REG);body.setSingleLine(false);body.setMaxLines(C.desk.body.maxLines);body.setHorizontallyScrolling(false);var bp=C.desk.body.padding;body.setPadding(bp[2],bp[0],bp[3],bp[1]);try{body.setAutoSizeTextTypeUniformWithConfiguration(C.desk.body.minTextSize,C.desk.body.maxTextSize,1,2);}catch(e){}var bLp=new LinearLayout.LayoutParams(-1,C.desk.body.height,C.desk.body.weight);pill.addView(body,bLp);var footer=new TextView(ctx);footer.setText("ID: "+id);footer.setTextColor(Color.parseColor(C.desk.footer.textColor));footer.setTextSize(C.desk.footer.textSize);footer.setGravity(17);footer.setTypeface(TF_REG);footer.setMaxLines(1);var fp=C.desk.footer.padding;footer.setPadding(fp[2],fp[0],fp[3],fp[1]);var fBg=new GradientDrawable();fBg.setColor(Color.parseColor(C.desk.footer.bgColor));fBg.setCornerRadius(C.desk.radius);fBg.setCornerRadii([0,0,C.desk.radius,C.desk.radius,C.desk.radius,C.desk.radius,0,0]);footer.setBackground(fBg);var fLp=new LinearLayout.LayoutParams(-1,C.desk.footer.height,C.desk.footer.weight);pill.addView(footer,fLp);dropUp(pill,delay);pill.setOnTouchListener(new View.OnTouchListener({onTouch:function(v,e){var a=e.getAction();if(a===0){v.animate().scaleX(C.anim.press.scale).scaleY(C.anim.press.scale).setDuration(C.anim.press.duration).setInterpolator(DECEL).start();}else if(a===1||a===3){v.animate().scaleX(C.anim.release.scale).scaleY(C.anim.release.scale).setDuration(C.anim.release.duration).setInterpolator(DECEL).start();}return false;}}));pill.setOnClickListener(new View.OnClickListener({onClick:function(){
-var i=id,h=new Handler(),c=getConfiguration(),o=c.getHomeDesktopId();
-try{search.clearFocus()}catch(e){}
-try{LL.runAction(43)}catch(e){}
-h.post(new Runnable({run:function(){
+// ============================================
+// LIGHTNING LAUNCHER OVERLAY v5 – POCO F7
+// Unified Launcher UX | Virtualized | Rhino JS
+// ============================================
 try{
-c.setHomeDesktopId(i);
-c.setCurrentDesktopId(i);
-LL.startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-}catch(e){}
-h.postDelayed(new Runnable({run:function(){
-try{
-c.setHomeDesktopId(o);
-getHomeScreen().goToDesktopPosition(i,0,0,1,true);
-}catch(e){
-h.postDelayed(new Runnable({run:function(){
-try{getHomeScreen().goToDesktopPosition(i,0,0,1,true)}catch(e){}
-}}),300);
+
+// --- BIND ---
+var cls="android.widget.FrameLayout,android.widget.LinearLayout,android.widget.ScrollView,android.widget.HorizontalScrollView,android.widget.EditText,android.widget.TextView,android.widget.ImageView,android.graphics.Color,android.graphics.drawable.GradientDrawable,android.view.Gravity,android.view.View,android.text.TextWatcher,android.content.Intent,android.content.pm.PackageManager,android.content.ComponentName,java.lang.Runnable,android.os.Handler,android.text.style.ForegroundColorSpan,android.text.Spanned,android.view.ViewTreeObserver,android.graphics.Rect,miuix.system.animation.physics.SpringAnimation,miuix.system.animation.physics.SpringForce,miuix.system.animation.property.ViewProperty,android.text.TextUtils".split(",");
+for(var i=0;i<cls.length;i++)bindClass(cls[i]);
+
+// --- ALIASES ---
+var L=LinearLayout,F=FrameLayout,T=TextView,E=EditText,I=ImageView,GD=GradientDrawable,G=Gravity,V=View,C=Color,TT=TextUtils;
+var CTX=LL.getContext(),PM=CTX.getPackageManager(),H=new Handler();
+var DM=CTX.getResources().getDisplayMetrics(),W=DM.widthPixels,SH=DM.heightPixels;
+var VIS=V.VISIBLE,GON=V.GONE,MP=-1,WC=-2,CEN=17,BOT=80;
+var pC=function(h){return C.parseColor(h);};
+
+// ============================================
+// CONFIG — Edit freely
+// ============================================
+var CFG={
+ mode:"D",
+ glass:{r:40,sw:3,blur:120},
+ search:{h:130,ts:16,pad:[40,0,40,0],rpad:[20,10,20,10],gap:15},
+ btn:{sz:120,isz:60,pad:[15,15,15,15],r:30},
+ pill:{h:160,pad:[30,15,30,15],iw:80,ih:80,igap:30,ts:16},
+ desk:{w:Math.floor(W*0.25),h:560,pad:[15,15,15,15],wpad:[20,10,20,10]},
+ drawer:{ppad:40,ts:12,cpad:[10,5,10,10]},
+ spring:{
+  fi:[SpringForce.STIFFNESS_MEDIUM,SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY,1],
+  si:[SpringForce.STIFFNESS_LOW,SpringForce.DAMPING_RATIO_LOW_BOUNCY,1],
+  pd:[SpringForce.STIFFNESS_HIGH,SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY,1],
+  pu:[SpringForce.STIFFNESS_HIGH,SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY,1],
+  nu:[SpringForce.STIFFNESS_HIGH,0.1,1]
+ },
+ db:{vs:40,s:80,l:100},
+ show:{desk:true,phone:true,drawer:true},
+ ly:{sw:0.60,dw:0.98,mw:0},
+ pool:10
+};
+for(var k in CFG.spring){var s=CFG.spring[k];s[0]*=s[2];}
+var CL={
+ D:{t:"#FFFFFFFF",h:"#88FFFFFF",gb:"#33FFFFFF",gs:"#55FFFFFF",dn:"#88FFFFFF",di:"#88FFFFFF",err:"#FFFF0000"},
+ L:{t:"#FF000000",h:"#88000000",gb:"#33FFFFFF",gs:"#55FFFFFF",dn:"#88000000",di:"#88000000",err:"#FFFF0000"}
+},M=CL[CFG.mode];
+for(var k in M)M[k]=pC(M[k]);
+
+// --- SHORT ALIASES ---
+var SB=CFG.search,QB=CFG.btn,RP=CFG.pill,DP=CFG.desk,DR=CFG.drawer,LY=CFG.ly,SP=CFG.spring,DB=CFG.db;
+
+// --- UTILS ---
+function anim(v,p,tg,st,dm,vl){
+ try{var a=new SpringAnimation(v,p,tg);var pd=Math.max(200,Math.abs(tg)*1.5+100);a.setMaxValue(tg+pd);a.setMinValue(tg-pd);var f=new SpringForce(tg);f.setStiffness(st);f.setDampingRatio(dm);a.setSpring(f);if(vl)a.setStartVelocity(vl);a.start();}catch(e){}
 }
-}}),300);
-}}));
-}}));return pill;}
-function buildAppPill(app,delay){var icon=getRoundedIcon(app);if(!icon)return null;var pill=new LinearLayout(ctx);pill.setOrientation(0);pill.setGravity(16);pill.setPadding(C.app.paddingHoriz,C.app.paddingVert,C.app.paddingHoriz,C.app.paddingVert);pill.setClipToOutline(true);pill.setMinimumHeight(C.app.minHeight);var pLp=new LinearLayout.LayoutParams(-2,C.app.height);pLp.gravity=1;pLp.setMargins(0,C.panel.gap,0,C.panel.gap);pill.setLayoutParams(pLp);var bg=new GradientDrawable();bg.setColor(pBgC);bg.setCornerRadius(C.app.radius);bg.setStroke(2,Color.parseColor(C.app.stroke));pill.setBackground(bg);pill.setClipToOutline(true);applyBlur(pill,C.blur.result);var iconView=new ImageView(ctx);iconView.setImageBitmap(icon);iconView.setAdjustViewBounds(true);pill.addView(iconView,new LinearLayout.LayoutParams(-2,-1));var label=new TextView(ctx);label.setText(app.n);label.setTextSize(C.app.textSize);label.setTextColor(pTxtC);label.setSingleLine(false);label.setMaxLines(2);label.setHorizontallyScrolling(false);label.setTypeface(TF_REG);label.setPadding(C.app.paddingHoriz,0,0,0);try{label.setAutoSizeTextTypeUniformWithConfiguration(10,C.app.textSize+2,1,2);}catch(e){}pill.addView(label,new LinearLayout.LayoutParams(-1,-2));dropUp(pill,delay);pill.setOnTouchListener(new View.OnTouchListener({onTouch:function(v,e){var a=e.getAction();if(a===0){v.animate().scaleX(C.anim.press.scale).scaleY(C.anim.press.scale).setDuration(C.anim.press.duration).setInterpolator(DECEL).start();}else if(a===1||a===3){v.animate().scaleX(C.anim.release.scale).scaleY(C.anim.release.scale).setDuration(C.anim.release.duration).setInterpolator(DECEL).start();}return false;}}));pill.setOnClickListener(new View.OnClickListener({onClick:function(){closeFloating();var item=ITEMS[app.id];if(item)try{item.launch();}catch(e){}}}));return pill;}
-var sortedApps=[];(function(){for(var i=0;i<cache.apps.length;i++)sortedApps.push(cache.apps[i]);})();
-function searchApps(q){var matches=[];var validLen=0;for(var len=q.length;len>0;len--){var prefix=q.substring(0,len);var found=false;for(var i=0;i<sortedApps.length;i++){if(sortedApps[i].l.indexOf(prefix)!==-1){found=true;break;}}if(found){validLen=len;break;}}for(var i=0;i<sortedApps.length;i++){var app=sortedApps[i];var idx=app.l.indexOf(q);if(idx!==-1)matches.push({a:app,idx:idx});}return{matches:matches,validLen:validLen};}
-var isSuspending=false,isBooting=true,wasVisible=false;
-function runInitialVisibilityCheck(){isBooting=false;var r=new Rect();if(root.getGlobalVisibleRect(r)){var rw=root.getWidth();if(rw>0&&(r.width()/rw)>0.8){wasVisible=true;openSearch();}}}
-root.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener({onViewAttachedToWindow:function(v){root.post(new java.lang.Runnable({run:runInitialVisibilityCheck}));},onViewDetachedFromWindow:function(v){}}));
-search.postDelayed(new java.lang.Runnable({run:function(){if(isBooting)runInitialVisibilityCheck();}}),10);
-function openSearch(){if(!search.hasFocus()){isSuspending=false;root.setElevation(20);var oldText=""+search.getText();search.setText("");if(oldText===""){if(scroll.getVisibility()===8){scroll.setVisibility(0);}buildHomePanel();}search.setFocusable(true);search.setFocusableInTouchMode(true);search.requestFocus();var attempts=0;var tryKb=new java.lang.Runnable({run:function(){if(!search.hasFocus())search.requestFocus();if(search.hasWindowFocus()){var imm=ctx.getSystemService("input_method");if(imm)imm.showSoftInput(search,1);}else{if(attempts<15){attempts++;search.postDelayed(tryKb,15);}}}});search.postDelayed(tryKb,10);}}
-function suspendSearch(){if(isFloatingOpen()){try{LL.runAction(43);}catch(e){}}if(v.getBoolean("__is_switching"))return;isSuspending=true;wasVisible=false;root.setElevation(0);var imm=ctx.getSystemService("input_method");if(imm)imm.hideSoftInputFromWindow(search.getWindowToken(),0);try{var c=root.getContext(),cl=c.getClass();if(cl.getName().indexOf("Floating")>-1){cl.getMethod("finish").invoke(c);}}catch(e){}scroll.setVisibility(8);results.removeAllViews();search.setText("");search.setFocusable(false);search.setFocusableInTouchMode(false);search.clearFocus();root.postDelayed(new java.lang.Runnable({run:function(){isSuspending=false;}}),20);}
-root.getViewTreeObserver().addOnScrollChangedListener(new ViewTreeObserver.OnScrollChangedListener({onScrollChanged:function(){if(isBooting)return;var r=new Rect();if(root.getGlobalVisibleRect(r)){var rw=root.getWidth();if(rw>0){var ratio=r.width()/rw;if(ratio>0.8&&!wasVisible){wasVisible=true;openSearch();}else if(ratio<0.2&&wasVisible){wasVisible=false;suspendSearch();}}}else if(wasVisible){wasVisible=false;suspendSearch();}}}));
-root.getViewTreeObserver().addOnWindowFocusChangeListener(new ViewTreeObserver.OnWindowFocusChangeListener({onWindowFocusChanged:function(h){if(isBooting)return;var r=new Rect();if(h&&root.getGlobalVisibleRect(r)){var rw=root.getWidth();if(rw>0&&(r.width()/rw)>0.8){wasVisible=true;openSearch();}}}}));
-search.setOnFocusChangeListener(new View.OnFocusChangeListener({onFocusChange:function(v,h){if(!h&&!isSuspending&&!isBooting){search.postDelayed(new java.lang.Runnable({run:function(){if(!search.hasFocus()&&!isSuspending)suspendSearch();}}),50);}}}));
-var kbOpen=false;root.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener({onGlobalLayout:function(){try{var r=new Rect();root.getWindowVisibleDisplayFrame(r);var h=root.getRootView().getHeight()-r.bottom;if(h>200&&!kbOpen){kbOpen=true;if(scroll.getVisibility()===0){scroll.post(new java.lang.Runnable({run:function(){scroll.fullScroll(130);}}));}}else if(h<=200&&kbOpen){kbOpen=false;}}catch(e){}}}));
-function setArea(v){var sx=0,sy=0,hasDown=false,isDrag=false;v.setOnTouchListener(new View.OnTouchListener({onTouch:function(v,e){var a=e.getAction();if(a===0){hasDown=true;isDrag=false;sx=e.getX();sy=e.getY();return true;}if(a===2&&hasDown){var dx=e.getX()-sx,dy=e.getY()-sy;if(dx*dx+dy*dy>900){isDrag=true;if(dy>30&&dy>Math.abs(dx)){suspendSearch();try{LL.runAction(43);}catch(err){}hasDown=false;return true;}else if(dy<-30&&Math.abs(dy)>Math.abs(dx)){suspendSearch();hasDown=false;return false;}}return true;}if(a===1&&hasDown){if(!isDrag){suspendSearch();try{LL.runAction(43);}catch(err){}}hasDown=false;return true;}if(a===3&&hasDown){suspendSearch();hasDown=false;return false;}return false;}}));v.setClickable(true);v.setFocusable(true);}
-setArea(top);setArea(bottom);setArea(root);
-var sTmr=null,sLen=0,redSpan=new ForegroundColorSpan(Color.RED);
-search.addTextChangedListener(new TextWatcher({beforeTextChanged:function(s,start,count,after){},onTextChanged:function(s,start,before,count){},afterTextChanged:function(s){try{var fullText=""+s,q=fullText.toLowerCase().trim(),textLen=fullText.length,isDel=textLen<sLen,d=isDel?C.delay.deleteChar:C.delay.addChar;sLen=textLen;if(sTmr)search.removeCallbacks(sTmr);if(textLen===0){buildHomePanel();return;}var data=searchApps(q);if(data.matches.length===0){nudge();if(data.validLen<textLen){try{s.setSpan(redSpan,data.validLen,textLen,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}catch(e){}}return;}try{s.removeSpan(redSpan);}catch(e){}sTmr=new java.lang.Runnable({run:function(){if(scroll.getVisibility()===8){scroll.setVisibility(0);}results.removeAllViews();var matches=data.matches;matches.sort(function(a,b){var sa=a.idx===0?0:1,sb=b.idx===0?0:1;if(sa!==sb)return sa-sb;return a.a.n<b.a.n?-1:(a.a.n>b.a.n?1:0);});if(matches.length>C.maxResults)matches.length=C.maxResults;for(var k=matches.length-1;k>=0;k--){var delay=(matches.length-1-k)*C.anim.entry.stagger;var pill=buildAppPill(matches[k].a,delay);if(pill)results.addView(pill);}scroll.post(new java.lang.Runnable({run:function(){scroll.fullScroll(130);}}));}});search.postDelayed(sTmr,d);}catch(e){}}}));
-if(isFloatingOpen()){search.setFocusable(true);search.setFocusableInTouchMode(true);search.requestFocus();var imm=ctx.getSystemService("input_method");if(imm)imm.showSoftInput(search,1);scroll.setVisibility(0);buildHomePanel();}
+function glass(v,rd){
+ var r=rd||CFG.glass.r;var d=new GD();d.setColor(M.gb);d.setCornerRadius(r);d.setStroke(CFG.glass.sw,M.gs);v.setBackground(d);
+ try{v.setBackgroundBlur(CFG.glass.blur,[r,r,r,r,r,r,r,r]);}catch(e){}
+}
+function pad(v,a,b,c,d){v.setPadding(a,b,c,d);}
+function lp(w,h){return new L.LayoutParams(w,h);}
+function lpw(w,h,wt){return new L.LayoutParams(w,h,wt);}
+function flp(w,h){return new F.LayoutParams(w,h);}
+var DT=new V.OnTouchListener({onTouch:function(v,e){v.getParent().requestDisallowInterceptTouchEvent(true);return false;}});
+var BT=new V.OnTouchListener({onTouch:function(v,e){v.getParent().requestDisallowInterceptTouchEvent(true);return true;}});
+function TS(sc,ve){return new V.OnTouchListener({onTouch:function(v,e){var a=e.getAction();if(a===0){anim(v,ViewProperty.SCALE_X,sc,SP.pd[0],SP.pd[1]);anim(v,ViewProperty.SCALE_Y,sc,SP.pd[0],SP.pd[1]);}else if(a===1||a===3){anim(v,ViewProperty.SCALE_X,1,SP.pu[0],SP.pu[1],ve);anim(v,ViewProperty.SCALE_Y,1,SP.pu[0],SP.pu[1],-ve);}return false;}});}
+
+// --- DATA ---
+var Apps=[],Desk=[],Phone=null,Idx={};
+(function(){
+ var it=new Intent(Intent.ACTION_MAIN);it.addCategory(Intent.CATEGORY_LAUNCHER);
+ var ls=PM.queryIntentActivities(it,0);
+ for(var i=0;i<ls.size();i++){
+  var ai=ls.get(i).activityInfo,nm=ls.get(i).loadLabel(PM).toString();
+  var a={n:nm,l:nm.toLowerCase(),cn:new ComponentName(ai.packageName,ai.name),icon:null};
+  Apps.push(a);var ch=a.l.charAt(0);if(!Idx[ch])Idx[ch]=[];Idx[ch].push(a);
+  if(!Phone&&a.l.indexOf("phone")>-1)Phone=a;
+ }
+ Apps.sort(function(a,b){return a.n<b.n?-1:1;});
+ try{var ids=LL.getAllDesktops();for(var i=0;i<ids.length;i++){var id=ids.getAt(i),ct=LL.getContainerById(id),nm="Desktop "+id;try{if(ct&&ct.getName)nm=ct.getName();}catch(e){}Desk.push({id:id,name:nm});}}catch(e){}
+})();
+function gIcon(a){if(!a.icon)try{a.icon=PM.getActivityIcon(a.cn);}catch(e){}return a.icon;}
+
+// --- STATE ---
+var md="HOME",spd=false,vis=false,bt=true;
+function fo(){
+ try{var s=LL.getFloatingScreen().getScreen(),f=s.getClass().getDeclaredField("this$0");f.setAccessible(true);var w=f.get(s),o=w.getClass().getDeclaredField("mIsShown");o.setAccessible(true);return o.getBoolean(w);}catch(e){return false;}
+}
+function clsF(){
+ if(spd)return;spd=true;try{LL.runAction(43);}catch(e){}
+ var im=CTX.getSystemService("input_method");if(im&&srch.hasWindowFocus())im.hideSoftInputFromWindow(srch.getWindowToken(),0);
+ H.postDelayed(new Runnable({run:function(){spd=false;}}),200);
+}
+var clk=new V.OnClickListener({onClick:function(v){
+ var a=v.getTag();if(!a)return;clsF();
+ try{CTX.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(a.cn).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}catch(e){}
+}});
+
+// --- NAVIGATION (unified launcher UX) ---
+function go(to){
+ if(md===to)return;md=to;
+ var im=CTX.getSystemService("input_method");
+ if(to==="DRAWER"){
+  if(im&&srch.hasWindowFocus())im.hideSoftInputFromWindow(srch.getWindowToken(),0);
+  srch.clearFocus();srch.setFocusable(false);srch.setFocusableInTouchMode(false);
+  deskS.setVisibility(GON);res.setVisibility(GON);scr.setVisibility(VIS);
+  drw.setVisibility(VIS);drw.setAlpha(1);drw.setScaleX(1);drw.setScaleY(1);ldPg(0);
+ }else if(to==="SEARCH"){
+  srch.setFocusable(true);srch.setFocusableInTouchMode(true);drw.setVisibility(GON);
+  if(srch.getText().toString().trim()===""){deskS.setVisibility(VIS);res.setVisibility(GON);scr.setVisibility(VIS);}
+  else{deskS.setVisibility(GON);res.setVisibility(VIS);scr.setVisibility(VIS);}
+  if(im)im.showSoftInput(srch,1);srch.requestFocus();
+ }else{
+  // HOME
+  if(im&&srch.hasWindowFocus())im.hideSoftInputFromWindow(srch.getWindowToken(),0);
+  srch.clearFocus();drw.setVisibility(GON);res.setVisibility(GON);
+  srch.setText("");deskS.setVisibility(VIS);scr.setVisibility(VIS);
+ }
+ var tw=to==="DRAWER"?LY.dw:LY.sw;
+ var tlp=top.getLayoutParams();tlp.weight=tw;top.setLayoutParams(tlp);
+ var blp=spc.getLayoutParams();blp.weight=1-tw;spc.setLayoutParams(blp);
+}
+function goHome(){go("HOME");}
+function goSearch(){go("SEARCH");}
+function goDrawer(){go("DRAWER");}
+
+// --- BUILD UI ---
+var root=new L(CTX);root.setOrientation(1);root.setClipChildren(false);root.setClipToPadding(false);
+root.setLayoutParams(LY.mw>0?lp(LY.mw,MP):lp(MP,MP));
+var top=new L(CTX);top.setOrientation(1);top.setGravity(BOT|G.CENTER_HORIZONTAL);top.setClipChildren(false);top.setClipToPadding(false);
+
+var scr=new ScrollView(CTX);scr.setVerticalScrollBarEnabled(false);scr.setOverScrollMode(2);scr.setVisibility(GON);scr.setClipChildren(false);scr.setClipToPadding(false);scr.setFillViewport(true);scr.setOnTouchListener(DT);
+var sc=new L(CTX);sc.setOrientation(1);sc.setGravity(BOT);sc.setClipChildren(false);sc.setClipToPadding(false);
+
+// --- DESKTOP STRIP ---
+var deskS=new HorizontalScrollView(CTX);deskS.setHorizontalScrollBarEnabled(false);deskS.setOverScrollMode(2);deskS.setOnTouchListener(DT);
+var dw=new L(CTX);dw.setOrientation(0);pad(dw,DP.wpad[0],DP.wpad[1],DP.wpad[2],DP.wpad[3]);
+var dclk=new V.OnClickListener({onClick:function(v){
+ var id=v.getTag();if(id==null)return;var c=LL.getConfiguration(),o=c.getHomeDesktopId();
+ try{srch.clearFocus();}catch(e){}try{LL.runAction(43);}catch(e){}
+ H.post(new Runnable({run:function(){
+  try{c.setHomeDesktopId(id);c.setCurrentDesktopId(id);CTX.startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}catch(e){}
+  H.postDelayed(new Runnable({run:function(){
+   try{c.setHomeDesktopId(o);LL.getHomeScreen().goToDesktopPosition(id,0,0,1,true);}catch(e){H.postDelayed(new Runnable({run:function(){try{LL.getHomeScreen().goToDesktopPosition(id,0,0,1,true);}catch(e){}}}),300);}
+  }}),300);
+ }}));
+}});
+for(var i=0;i<Desk.length;i++){
+ (function(id,nm,idx){
+  var p=new L(CTX);p.setOrientation(1);p.setGravity(CEN);pad(p,DP.pad[0],DP.pad[1],DP.pad[2],DP.pad[3]);glass(p);p.setOnTouchListener(TS(0.94,10));p.setLayoutParams(lp(DP.w,DP.h));p.setTag(id);
+  var n=new T(CTX);n.setText(String(idx+1));n.setTextColor(M.dn);n.setGravity(CEN);p.addView(n);
+  var t=new T(CTX);t.setText(nm);t.setTextColor(M.t);t.setGravity(CEN);p.addView(t,lpw(MP,WC,1));
+  var d=new T(CTX);d.setText("ID:"+id);d.setTextColor(M.di);d.setTextSize(10);d.setGravity(CEN);p.addView(d);
+  p.setAlpha(0.85);p.setTranslationY(30);
+  p.postDelayed(new Runnable({run:(function(v){return function(){anim(v,ViewProperty.ALPHA,1,SP.fi[0],SP.fi[1]);anim(v,ViewProperty.TRANSLATION_Y,0,SP.si[0],SP.si[1]);}})(p)}),idx*80);
+  p.setOnClickListener(dclk);dw.addView(p);
+ })(Desk[i].id,Desk[i].name,i);
+}
+deskS.addView(dw);sc.addView(deskS,lp(MP,WC));
+
+// --- RESULTS POOL ---
+var res=new L(CTX);res.setOrientation(1);res.setGravity(BOT);res.setClipChildren(false);res.setClipToPadding(false);res.setPadding(0,0,0,15);
+var pool=[];
+for(var j=0;j<CFG.pool;j++){
+ var rp=new L(CTX);rp.setOrientation(0);rp.setGravity(16);pad(rp,RP.pad[0],RP.pad[1],RP.pad[2],RP.pad[3]);glass(rp);rp.setOnTouchListener(TS(0.94,10));rp.setLayoutParams(lp(MP,RP.h));
+ var ic=new I(CTX);rp.addView(ic,lp(RP.iw,RP.ih));
+ var lb=new T(CTX);lb.setTextColor(M.t);lb.setTextSize(RP.ts);lb.setPadding(RP.igap,0,0,0);lb.setSingleLine(false);lb.setMaxLines(2);lb.setGravity(16|G.CENTER_VERTICAL);
+ rp.addView(lb,lp(MP,WC));rp.setVisibility(GON);rp.setOnClickListener(clk);
+ pool.push({v:rp,icon:ic,label:lb});res.addView(rp,0);
+}
+sc.addView(res,lp(MP,WC));
+
+// --- VIRTUALIZED DRAWER ---
+var drw=new F(CTX);drw.setVisibility(GON);glass(drw);drw.setOnTouchListener(BT);
+var dsc=new HorizontalScrollView(CTX);dsc.setHorizontalScrollBarEnabled(false);dsc.setOverScrollMode(2);dsc.setOnTouchListener(DT);
+var aw=W-DR.ppad,tm=180;
+var COLS=Math.max(4,Math.floor(aw/tm)),ROWS=4,CW=Math.floor(aw/COLS),CH=Math.floor(CW*1.4),ISZ=Math.min(Math.floor(CW*0.65),120),PP=COLS*ROWS,cpg=-1;
+var pgv=new L(CTX);pgv.setOrientation(1);pgv.setLayoutParams(lp(aw,MP));
+var cells=[];
+for(var r=0;r<ROWS;r++){
+ var row=new L(CTX);row.setOrientation(0);row.setLayoutParams(lpw(MP,0,1));
+ for(var c=0;c<COLS;c++){
+  var cl=new L(CTX);cl.setOrientation(1);cl.setGravity(CEN);cl.setLayoutParams(lpw(0,MP,1));
+  var ci=new I(CTX);cl.addView(ci,lp(ISZ,ISZ));
+  var ct=new T(CTX);ct.setTextColor(M.t);ct.setTextSize(DR.ts);ct.setGravity(CEN);ct.setSingleLine(true);pad(ct,DR.cpad[0],DR.cpad[1],DR.cpad[2],DR.cpad[3]);
+  try{ct.setEllipsize(TT.TruncateAt.END);}catch(e){}
+  cl.addView(ct,lp(MP,WC));cl.setScaleX(0.8);cl.setScaleY(0.8);cl.setAlpha(0);cl.setTag(null);cl.setOnClickListener(clk);cl.setOnTouchListener(TS(0.92,6));
+  cells.push({v:cl,icon:ci,label:ct});row.addView(cl);
+ }
+ pgv.addView(row);
+}
+dsc.addView(pgv);drw.addView(dsc,flp(MP,MP));
+dsc.setOnScrollChangeListener(new V.OnScrollChangeListener({onScrollChange:function(v,sx,sy,ox,oy){var pg=Math.round(sx/aw);if(pg!==cpg){cpg=pg;ldPg(pg);}}}));
+function ldPg(pg){var st=pg*PP;for(var i=0;i<cells.length;i++){var cl=cells[i],ix=st+i;if(ix<Apps.length){var a=Apps[ix];cl.v.setTag(a);cl.icon.setImageDrawable(gIcon(a));cl.label.setText(a.n);cl.v.setVisibility(VIS);cl.v.postDelayed(new Runnable({run:(function(v,ix){return function(){anim(v,ViewProperty.SCALE_X,1,SP.fi[0],SP.fi[1],4);anim(v,ViewProperty.SCALE_Y,1,SP.fi[0],SP.fi[1],-3);anim(v,ViewProperty.ALPHA,1,SP.fi[0],SP.fi[1]);}})(cl.v,ix)}),i*10);}else{cl.v.setTag(null);cl.v.setVisibility(GON);}}}
+sc.addView(drw,lpw(MP,0,1));scr.addView(sc);top.addView(scr,lp(MP,WC));root.addView(top,lpw(MP,0,LY.sw));
+
+// --- SEARCH BAR ---
+var srow=new L(CTX);srow.setOrientation(0);srow.setGravity(16);pad(srow,SB.rpad[0],SB.rpad[1],SB.rpad[2],SB.rpad[3]);
+function qb(ic,ac){
+ var b=new F(CTX);pad(b,QB.pad[0],QB.pad[1],QB.pad[2],QB.pad[3]);glass(b,QB.r);b.setOnTouchListener(TS(0.94,10));
+ var iv=new I(CTX);if(typeof ic==="number")iv.setImageResource(ic);else if(ic)iv.setImageDrawable(ic);
+ b.addView(iv,flp(QB.isz,QB.isz));b.setOnClickListener(new V.OnClickListener({onClick:ac}));return b;
+}
+var phb=qb(Phone?gIcon(Phone):android.R.drawable.sym_action_call,function(){if(Phone){clsF();try{CTX.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(Phone.cn).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}catch(e){}}});
+var apb=qb(android.R.drawable.ic_menu_sort_by_size,function(){if(md==="DRAWER")goHome();else goDrawer();});
+var swrp=new F(CTX);glass(swrp,100);
+var srch=new E(CTX);srch.setHint("Search...");srch.setTextColor(M.t);srch.setHintTextColor(M.h);srch.setSingleLine(true);pad(srch,SB.pad[0],SB.pad[1],SB.pad[2],SB.pad[3]);srch.setTextSize(SB.ts);srch.setBackground(null);srch.setGravity(CEN);swrp.addView(srch,flp(MP,MP));
+srow.addView(phb,lp(QB.sz,QB.sz));var slp=lpw(0,SB.h,1);slp.setMargins(SB.gap,0,SB.gap,0);srow.addView(swrp,slp);srow.addView(apb,lp(QB.sz,QB.sz));root.addView(srow,lp(MP,WC));
+var spc=new V(CTX);var bw=1-LY.sw;if(bw>0)root.addView(spc,lpw(MP,0,bw));
+
+// --- SEARCH ---
+var sTmr=null,ndg=false,redS=new ForegroundColorSpan(C.RED);
+function nd(){
+ if(ndg)return;ndg=true;anim(swrp,ViewProperty.TRANSLATION_X,0,SP.nu[0],SP.nu[1],3500);
+ H.postDelayed(new Runnable({run:function(){ndg=false;}}),300);
+}
+srch.addTextChangedListener(new TextWatcher({
+ beforeTextChanged:function(){},onTextChanged:function(){},
+ afterTextChanged:function(s){
+  var q=s.toString().toLowerCase().trim(),len=q.length;
+  if(sTmr)H.removeCallbacks(sTmr);
+  if(len===0){try{s.removeSpan(redS);}catch(e){}res.setVisibility(GON);deskS.setVisibility(VIS);scr.setVisibility(VIS);if(md==="SEARCH")goHome();return;}
+  if(md!=="SEARCH")goSearch();
+  sTmr=new Runnable({run:function(){
+   var ch=q.charAt(0),cds=Idx[ch]||Apps,mt=[];
+   for(var i=0;i<cds.length;i++){
+    if(cds[i].l.indexOf(q)!==-1){var sc=cds[i].l.indexOf(q)===0?0:cds[i].l.indexOf(" "+q)>-1?1:2;mt.push({a:cds[i],s:sc});if(mt.length>=CFG.pool*3)break;}
+   }
+   mt.sort(function(a,b){return a.s-b.s||a.a.l.indexOf(q)-b.a.l.indexOf(q);});if(mt.length>CFG.pool)mt.length=CFG.pool;
+   deskS.setVisibility(GON);scr.setVisibility(VIS);res.setVisibility(VIS);
+   if(mt.length===0){
+    nd();var vl=0;
+    for(var l=q.length;l>=0;l--){var px=q.substring(0,l);if(px.length===0)break;var fd=false;for(var j=0;j<cds.length;j++){if(cds[j].l.indexOf(px)!==-1){fd=true;break;}}if(fd){vl=l;break;}}
+    if(vl<q.length)try{s.setSpan(redS,vl,q.length,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}catch(e){}
+    for(var i=0;i<CFG.pool;i++)pool[i].v.setVisibility(GON);return;
+   }
+   try{s.removeSpan(redS);}catch(e){}
+   for(var i=0;i<CFG.pool;i++){var itm=pool[i];if(i<mt.length){(function(a,iv,icv,lbv,ix){iv.setVisibility(VIS);iv.setAlpha(0.85);iv.setTranslationY(30);iv.setTag(a);icv.setImageDrawable(gIcon(a));lbv.setText(a.n);iv.postDelayed(new Runnable({run:function(){anim(iv,ViewProperty.ALPHA,1,SP.fi[0],SP.fi[1]);anim(iv,ViewProperty.TRANSLATION_Y,0,SP.si[0],SP.si[1]);}}),ix*25);})(mt[i].a,itm.v,itm.icon,itm.label,i);}else{itm.v.setVisibility(GON);}}
+   scr.post(new Runnable({run:function(){scr.fullScroll(130);}}));
+  }});
+  H.postDelayed(sTmr,len===1?DB.l:len===2?DB.s:DB.vs);
+ }
+}));
+
+// --- LIFECYCLE ---
+function ckVis(){
+ if(bt){bt=false;}var r=new Rect();
+ if(root.getGlobalVisibleRect(r)&&root.getWidth()>0&&(r.width()/root.getWidth())>0.8){if(!vis){vis=true;opn();}}
+ else if(vis){vis=false;sus();}
+}
+function opn(){
+ goHome();srch.setText("");res.setVisibility(GON);deskS.setVisibility(VIS);
+ if(!srch.hasFocus()){spd=false;root.setElevation(20);srch.setFocusable(true);srch.setFocusableInTouchMode(true);srch.requestFocus();if(scr.getVisibility()!==VIS)scr.setVisibility(VIS);
+  var tr=0;var kr=new Runnable({run:function(){if(!srch.hasFocus())srch.requestFocus();if(srch.hasWindowFocus()){var im=CTX.getSystemService("input_method");if(im)im.showSoftInput(srch,1);}else if(tr++<15)srch.postDelayed(this,15);}});srch.postDelayed(kr,10);}
+}
+function sus(){vis=false;root.setElevation(0);var im=CTX.getSystemService("input_method");if(im&&srch.hasWindowFocus())im.hideSoftInputFromWindow(srch.getWindowToken(),0);res.setVisibility(GON);srch.setText("");srch.setFocusable(false);srch.setFocusableInTouchMode(false);srch.clearFocus();}
+root.addOnAttachStateChangeListener(new V.OnAttachStateChangeListener({onViewAttachedToWindow:function(v){root.post(new Runnable({run:ckVis}));},onViewDetachedFromWindow:function(v){}}));
+root.getViewTreeObserver().addOnScrollChangedListener(new ViewTreeObserver.OnScrollChangedListener({onScrollChanged:function(){ckVis();}}));
+root.getViewTreeObserver().addOnWindowFocusChangeListener(new ViewTreeObserver.OnWindowFocusChangeListener({onWindowFocusChanged:function(h){if(h)ckVis();}}));
+srch.setOnFocusChangeListener(new V.OnFocusChangeListener({onFocusChange:function(v,h){if(!h&&!spd&&!bt&&md!=="DRAWER"){srch.postDelayed(new Runnable({run:function(){if(!srch.hasFocus()&&!spd)sus();}}),50);}}}));
+if(fo())opn();
 return root;
+}catch(e){var er=new android.widget.TextView(LL.getContext());er.setText("L:"+e.lineNumber+" "+e.toString());er.setTextColor(android.graphics.Color.RED);return er;}
