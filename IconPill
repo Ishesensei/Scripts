@@ -1,165 +1,63 @@
-bindClass("android.widget.LinearLayout");
-bindClass("android.widget.TextView");
-bindClass("android.widget.ImageView");
-bindClass("android.graphics.Color");
-bindClass("android.graphics.drawable.GradientDrawable");
-bindClass("android.view.Gravity");
-bindClass("android.view.View");
-bindClass("android.content.Intent");
-bindClass("android.content.ComponentName");
-bindClass("android.content.pm.PackageManager");
-bindClass("android.util.TypedValue");
+bindClass("android.widget.FrameLayout");bindClass("android.widget.ImageView");bindClass("android.graphics.Color");bindClass("android.graphics.drawable.GradientDrawable");bindClass("android.view.Gravity");bindClass("android.view.View");bindClass("android.content.Intent");bindClass("android.content.ComponentName");bindClass("android.content.pm.PackageManager");
 
-var ctx = LL.getContext(), pm = ctx.getPackageManager();
+var ctx=LL.getContext(),pm=ctx.getPackageManager();
 
-// ==========================================
-// 🛠️ PREMIUM CONFIGURATION (SAMSUNG / MIUI)
-// ==========================================
-var CONFIG = {
-    APP_NAME: "phone",         
+var APP="phone";
+var THEME="SOLID";
+var COLOR_SOLID="#FFFFFF";
+var COLOR_BLUR="#55FFFFFF";
+var BORDER_COLOR="#1A000000";
+var BORDER_WIDTH=2;
+var ICON_MARGIN=12;
+
+var A={n:APP,cn:null,icon:null};
+var it=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+var ls=pm.queryIntentActivities(it,0);
+for(var i=0;i<ls.size();i++){var ai=ls.get(i).activityInfo,nm=ls.get(i).loadLabel(pm).toString();if(nm.toLowerCase().indexOf(APP.toLowerCase())>-1){A={n:nm,cn:new ComponentName(ai.packageName,ai.name),icon:null};break;}}
+if(A.cn)try{A.icon=pm.getActivityIcon(A.cn);}catch(e){}
+
+var isSolid=THEME==="SOLID";
+var bgColor=isSolid?COLOR_SOLID:COLOR_BLUR;
+
+var R=new FrameLayout(ctx);R.setMinimumWidth(20);R.setMinimumHeight(20);R.setClipToOutline(true);
+var gd=new GradientDrawable();gd.setColor(Color.parseColor(bgColor));gd.setStroke(BORDER_WIDTH,Color.parseColor(BORDER_COLOR));R.setBackground(gd);
+if(isSolid){try{R.setElevation(15);}catch(e){}}else{try{R.setBackgroundBlur(60,[100,100,100,100,100,100,100,100]);}catch(e){}}
+
+var iw=new FrameLayout(ctx);iw.setClipToOutline(true);
+var iwGd=new GradientDrawable();iwGd.setColor(Color.parseColor("#00000000"));iwGd.setStroke(BORDER_WIDTH,Color.parseColor(BORDER_COLOR));iw.setBackground(iwGd);
+
+var iv=new ImageView(ctx);if(A.icon)iv.setImageDrawable(A.icon);iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+iw.addView(iv,new FrameLayout.LayoutParams(-1,-1));
+R.addView(iw,new FrameLayout.LayoutParams(-1,-1,17));
+
+R.addOnLayoutChangeListener(new View.OnLayoutChangeListener({onLayoutChange:function(v,l,t,r,b,ol,ot,orr,ob){
+    var cw=r-l,ch=b-t;if(cw<10||ch<10)return;
+    var minor=Math.min(cw,ch);
     
-    // 🎨 THEME TOGGLE: "SOLID" (No Transparency) OR "BLUR" (Glassmorphism)
-    THEME: "SOLID",            
+    // Pill radius = half minor (auto: circle or pill ends)
+    var cr=Math.floor(minor/2);
+    gd.setCornerRadius(cr);
+    
+    // Icon wrapper stays SQUARE, size follows minor
+    var margin=Math.max(2,Math.floor(minor*(ICON_MARGIN/100)));
+    var iSize=minor-margin*2;
+    if(iSize<8)iSize=8;
+    
+    // Icon border radius changes: round when pill is square, less round when pill is rectangle
+    // Ratio = minor/major → 1.0 for square (full round), <1.0 for rectangle (less round)
+    var major=Math.max(cw,ch);
+    var ratio=minor/major;
+    var iwRadius=Math.floor((iSize/2)*ratio);
+    if(iwRadius<4)iwRadius=4;
+    iwGd.setCornerRadius(iwRadius);
+    
+    var lp=iw.getLayoutParams();
+    lp.width=iSize;lp.height=iSize;
+    lp.setMargins(margin,margin,margin,margin);
+    iw.setLayoutParams(lp);
+}}));
 
-    // Colors
-    COLOR_SOLID: "#FFFFFF",    // 100% Opaque White for Solid theme
-    COLOR_BLUR: "#55FFFFFF",   // Semi-transparent for Blur theme
-    TEXT_COLOR: "#111111",     // Dark text
-    BORDER_COLOR: "#1A000000", // Subtle premium border
-    BORDER_WIDTH: 2,           
-
-    // 📐 PROPORTIONS (%) - Zero Bleed Math
-    PADDING_PCT: 26,    // Container padding
-    ICON_PCT: 95,       // Icon size relative to thickness
-    GAP_PCT: 8          // Gap between icon and text
-};
-// ==========================================
-
-// --- 1. FETCH APP DATA ---
-var A = { n: CONFIG.APP_NAME, cn: null, icon: null };
-var it = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
-var ls = pm.queryIntentActivities(it, 0);
-for (var i = 0; i < ls.size(); i++) {
-    var ai = ls.get(i).activityInfo, nm = ls.get(i).loadLabel(pm).toString();
-    if (nm.toLowerCase().indexOf(CONFIG.APP_NAME.toLowerCase()) > -1) {
-        A = { n: nm, cn: new ComponentName(ai.packageName, ai.name), icon: null };
-        break;
-    }
-}
-if (A.cn) try { A.icon = pm.getActivityIcon(A.cn); } catch(e) {}
-
-// --- 2. BUILD PREMIUM UI ---
-var box = new LinearLayout(ctx);
-box.setGravity(Gravity.CENTER);
-
-var isSolid = (CONFIG.THEME.toUpperCase() === "SOLID");
-var gd = new GradientDrawable();
-gd.setColor(Color.parseColor(isSolid ? CONFIG.COLOR_SOLID : CONFIG.COLOR_BLUR));
-gd.setStroke(CONFIG.BORDER_WIDTH, Color.parseColor(CONFIG.BORDER_COLOR));
-box.setBackground(gd);
-
-if (isSolid) {
-    try { box.setElevation(15); } catch(e) {} // Premium Samsung Shadow for Solid
-} else {
-    try { box.setBackgroundBlur(60, [100,100,100,100,100,100,100,100]); } catch(e) {}
-}
-
-var iv = new ImageView(ctx);
-if (A.icon) iv.setImageDrawable(A.icon);
-iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-iv.setAdjustViewBounds(true);
-
-var lb = new TextView(ctx);
-lb.setText(A.n);
-lb.setTextColor(Color.parseColor(CONFIG.TEXT_COLOR));
-lb.setGravity(Gravity.CENTER);
-lb.setTypeface(android.graphics.Typeface.create("sans-serif-medium", 0));
-
-// ⚠️ MAGIC: SMART TEXT WRAP & AUTO-SCALE (No Ellipsize)
-lb.setSingleLine(false); // Allow multiple lines
-lb.setMaxLines(2);       // Max 2 lines keeps it looking clean like a pill
-try {
-    // This tells Android to auto-shrink the text to fit the exact width/height box
-    // minSize: 12px, maxSize: 100px, step: 1px
-    lb.setAutoSizeTextTypeUniformWithConfiguration(12, 100, 1, TypedValue.COMPLEX_UNIT_PX);
-} catch(e) {
-    // Fallback if Android version is too old
-    lb.setEllipsize(android.text.TextUtils.TruncateAt.END);
-}
-
-box.addView(iv);
-box.addView(lb);
-
-// --- 3. THE STRICT BOUNDARY ENGINE ---
-box.addOnLayoutChangeListener(new View.OnLayoutChangeListener({
-    onLayoutChange: function(v, l, t, r, b, ol, ot, orr, ob) {
-        var w = r - l, h = b - t;
-        if (w <= 0 || h <= 0) return;
-
-        var minor = Math.min(w, h);
-        var major = Math.max(w, h);
-        var isWide = w > h;
-
-        gd.setCornerRadius(minor / 2);
-
-        var pad = Math.floor(minor * (CONFIG.PADDING_PCT / 100));
-        box.setPadding(pad, pad, pad, pad);
-
-        var uMinor = Math.max(0, minor - (pad * 2));
-        var uMajor = Math.max(0, major - (pad * 2));
-
-        var iSize = Math.floor(uMinor * (CONFIG.ICON_PCT / 100));
-        var gap   = Math.floor(uMinor * (CONFIG.GAP_PCT / 100));
-
-        iv.setLayoutParams(new LinearLayout.LayoutParams(iSize, iSize));
-
-        // ⚠️ TEXT BOUNDARY CALCULATION:
-        // Instead of WRAP_CONTENT, we explicitly tell the TextView EXACTLY 
-        // how much space it is allowed to use. The Auto-Size engine takes care of the rest.
-        var textW, textH, lp;
-        if (isWide) {
-            box.setOrientation(LinearLayout.HORIZONTAL);
-            textW = Math.max(0, uMajor - iSize - gap);
-            textH = uMinor;
-            lp = new LinearLayout.LayoutParams(textW, textH);
-            lp.setMargins(gap, 0, 0, 0);
-        } else {
-            box.setOrientation(LinearLayout.VERTICAL);
-            textW = uMinor;
-            textH = Math.max(0, uMajor - iSize - gap);
-            lp = new LinearLayout.LayoutParams(textW, textH);
-            lp.setMargins(0, gap, 0, 0);
-        }
-        
-        lb.setLayoutParams(lp);
-        
-        // Hide if literally no space is left
-        lb.setVisibility((textW > 0 && textH > 0) ? View.VISIBLE : View.GONE);
-    }
-}));
-
-// --- 4. BUTTERY INTERACTION ---
-box.setClickable(true);
-box.setOnTouchListener(new View.OnTouchListener({
-    onTouch: function(v, e) {
-        var a = e.getAction();
-        if (a === 0) { 
-            v.animate().scaleX(0.92).scaleY(0.92).setDuration(120).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
-            if(!isSolid) v.setAlpha(0.8);
-        } else if (a === 1 || a === 3) { 
-            v.animate().scaleX(1.0).scaleY(1.0).setDuration(350).setInterpolator(new android.view.animation.OvershootInterpolator(1.2)).start();
-            if(!isSolid) v.setAlpha(1.0);
-        }
-        return false;
-    }
-}));
-
-box.setOnClickListener(new View.OnClickListener({
-    onClick: function(v) {
-        if (A.cn) try { 
-            ctx.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(A.cn).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); 
-        } catch(e) {}
-    }
-}));
-
-return box;
+R.setClickable(true);
+R.setOnTouchListener(new View.OnTouchListener({onTouch:function(v,e){var a=e.getAction();if(a===0){v.animate().scaleX(0.92).scaleY(0.92).setDuration(120).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();if(!isSolid)v.setAlpha(0.8);}else if(a===1||a===3){v.animate().scaleX(1.0).scaleY(1.0).setDuration(350).setInterpolator(new android.view.animation.OvershootInterpolator(1.2)).start();if(!isSolid)v.setAlpha(1.0);}return false;}}));
+R.setOnClickListener(new View.OnClickListener({onClick:function(v){if(A.cn)try{ctx.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(A.cn).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}catch(e){}}}));
+return R;
