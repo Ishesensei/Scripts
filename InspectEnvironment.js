@@ -1,100 +1,263 @@
-// ===== Lightning Launcher Runtime =====
+(function(){
 
-// Rhino Language Version : <unavailable>
-// Optimization Level : <unavailable>
+var out="";
 
-// ===== Java =====
-// Java Version : 0
-// VM Name : Dalvik
-// VM Vendor : The Android Project
-// VM Version : 2.1.0
-
-// ===== Android =====
-// SDK : 36
-// Release : 16
-// Codename : REL
-// Brand : POCO
-// Manufacturer : Xiaomi
-// Device : onyx
-// Model : 25053PC47I
-// Hardware : qcom
-// Fingerprint : POCO/onyx_in/onyx:16/BP2A.250605.031.A3/OS3.0.301.0.WOLINXM:user/release-keys
-
-// ===== Lightning Launcher =====
-// LL Class : net.pierrox.lightning_launcher.script.api.LL
-// FloatingScreen : net.pierrox.lightning_launcher.script.api.screen.Screen
-// Event : net.pierrox.lightning_launcher.script.api.Event
-var out = "===== Lightning Launcher Runtime =====\n\n";
-
-try {
-    bindClass("org.mozilla.javascript.Context");
-    out += "Rhino Language Version : " +
-        Context.getCurrentContext().getLanguageVersion() + "\n";
-} catch(e) {
-    out += "Rhino Language Version : <unavailable>\n";
+function add(title){
+    out+="\n========== "+title+" ==========\n";
 }
 
-try {
-    out += "Optimization Level : " +
-        Context.getCurrentContext().getOptimizationLevel() + "\n";
-} catch(e) {
-    out += "Optimization Level : <unavailable>\n";
+function line(k,v){
+    out+=k+" : "+v+"\n";
 }
 
-try {
-    out += "Generating Debug : " +
-        Context.getCurrentContext().isGeneratingDebug() + "\n";
-} catch(e) {}
+function ok(name){
+    try{
+        return typeof this[name];
+    }catch(e){
+        return "<error>";
+    }
+}
 
-try {
-    out += "Generating Source : " +
-        Context.getCurrentContext().isGeneratingSource() + "\n";
-} catch(e) {}
+function className(o){
+    try{
+        if(o==null) return "null";
+        return o.getClass().getName();
+    }catch(e){
+        return typeof o;
+    }
+}
 
-try {
-    out += "Instruction Threshold : " +
-        Context.getCurrentContext().getInstructionObserverThreshold() + "\n";
-} catch(e) {}
+function inspect(name,obj){
+    line(name,className(obj));
 
-out += "\n===== Java =====\n";
+    try{
+        var c=obj.getClass();
 
-try {
-    out += "Java Version : " + java.lang.System.getProperty("java.version") + "\n";
-    out += "VM Name : " + java.lang.System.getProperty("java.vm.name") + "\n";
-    out += "VM Vendor : " + java.lang.System.getProperty("java.vm.vendor") + "\n";
-    out += "VM Version : " + java.lang.System.getProperty("java.vm.version") + "\n";
-} catch(e) {}
+        line("Superclass",
+            c.getSuperclass()
+                ? c.getSuperclass().getName()
+                : "null");
 
-out += "\n===== Android =====\n";
+        line("Interfaces",
+            c.getInterfaces().length);
 
-try {
-    bindClass("android.os.Build");
+        line("Fields",
+            c.getDeclaredFields().length);
 
-    out += "SDK : " + Build.VERSION.SDK_INT + "\n";
-    out += "Release : " + Build.VERSION.RELEASE + "\n";
-    out += "Codename : " + Build.VERSION.CODENAME + "\n";
-    out += "Brand : " + Build.BRAND + "\n";
-    out += "Manufacturer : " + Build.MANUFACTURER + "\n";
-    out += "Device : " + Build.DEVICE + "\n";
-    out += "Model : " + Build.MODEL + "\n";
-    out += "Hardware : " + Build.HARDWARE + "\n";
-    out += "Fingerprint : " + Build.FINGERPRINT + "\n";
-} catch(e) {}
+        line("Methods",
+            c.getDeclaredMethods().length);
 
-out += "\n===== Lightning Launcher =====\n";
+        line("Constructors",
+            c.getDeclaredConstructors().length);
 
-try {
-    out += "LL Class : " + LL.getClass().getName() + "\n";
-} catch(e) {}
+    }catch(e){}
+}
 
-try {
-    var fs = getFloatingScreen();
-    out += "FloatingScreen : " + fs.getClass().getName() + "\n";
-} catch(e) {}
 
-try {
-    var ev = getEvent();
-    out += "Event : " + ev.getClass().getName() + "\n";
-} catch(e) {}
+
+add("Javascript Engine");
+
+[
+"Packages",
+"java",
+"JavaAdapter",
+"JavaImporter",
+"bindClass",
+"importClass",
+"Sync",
+"Context",
+"LL",
+"Android"
+].forEach(function(x){
+    line(x,ok(x));
+});
+
+
+
+add("Java");
+
+try{
+line("Java Version",
+java.lang.System.getProperty("java.version"));
+}catch(e){}
+
+try{
+line("VM",
+java.lang.System.getProperty("java.vm.name"));
+}catch(e){}
+
+try{
+line("VM Vendor",
+java.lang.System.getProperty("java.vm.vendor"));
+}catch(e){}
+
+try{
+line("VM Version",
+java.lang.System.getProperty("java.vm.version"));
+}catch(e){}
+
+
+
+add("Android");
+
+try{
+
+line("SDK",Build.VERSION.SDK_INT);
+line("Release",Build.VERSION.RELEASE);
+line("Codename",Build.VERSION.CODENAME);
+line("Brand",Build.BRAND);
+line("Manufacturer",Build.MANUFACTURER);
+line("Model",Build.MODEL);
+line("Device",Build.DEVICE);
+line("Hardware",Build.HARDWARE);
+line("Fingerprint",Build.FINGERPRINT);
+
+}catch(e){}
+
+
+
+add("Reflection");
+
+try{
+
+var c=getFloatingScreen().getClass();
+
+line("Declared Fields",
+c.getDeclaredFields().length);
+
+line("Declared Methods",
+c.getDeclaredMethods().length);
+
+line("Constructors",
+c.getDeclaredConstructors().length);
+
+line("Reflection","SUPPORTED");
+
+}catch(e){
+
+line("Reflection","FAILED");
+line("Reason",e);
+
+}
+
+
+
+add("Lightning Globals");
+
+[
+"LL",
+"floatingScreen",
+"homeScreen",
+"activeScreen",
+"backgroundScreen",
+"lockScreen",
+"scriptScreen",
+"liveWallpaperScreen",
+"engine",
+"configuration",
+"variables",
+"currentScript",
+"event_"
+].forEach(function(x){
+    line(x,ok(x));
+});
+
+
+
+add("Primary Objects");
+
+try{inspect("LL",LL);}catch(e){}
+try{inspect("FloatingScreen",getFloatingScreen());}catch(e){}
+try{inspect("CurrentScript",getCurrentScript());}catch(e){}
+try{inspect("Event",getEvent_());}catch(e){}
+try{inspect("Engine",engine);}catch(e){}
+
+
+
+add("Screen Wrapper");
+
+try{
+
+var fs=getFloatingScreen();
+
+var c=fs.getClass();
+
+while(c){
+
+out+="\n["+c.getName()+"]\n";
+
+var f=c.getDeclaredFields();
+
+for(var i=0;i<f.length;i++){
+
+try{
+
+f[i].setAccessible(true);
+
+var v=f[i].get(fs);
+
+out+=f[i].getName()+" -> "+className(v)+"\n";
+
+}catch(e){}
+
+}
+
+c=c.getSuperclass();
+
+}
+
+}catch(e){}
+
+
+
+add("Environment");
+
+try{
+
+line("Current Thread",
+java.lang.Thread.currentThread().getName());
+
+}catch(e){}
+
+try{
+
+line("ClassLoader",
+String(getFloatingScreen()
+.getClass()
+.getClassLoader()));
+
+}catch(e){}
+
+try{
+
+line("Package",
+getFloatingScreen()
+.getClass()
+.getPackage()
+.getName());
+
+}catch(e){}
+
+
+
+add("Global Symbols");
+
+var count=0;
+
+for(var k in this){
+
+count++;
+
+try{
+out+=k+" : "+typeof this[k]+"\n";
+}catch(e){}
+
+}
+
+line("Total Globals",count);
+
+
 
 Tc(out,1,1);
+
+})();
