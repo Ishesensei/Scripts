@@ -1,63 +1,18 @@
-bindClass("android.widget.FrameLayout");bindClass("android.widget.ImageView");bindClass("android.graphics.Color");bindClass("android.graphics.drawable.GradientDrawable");bindClass("android.view.Gravity");bindClass("android.view.View");bindClass("android.content.Intent");bindClass("android.content.ComponentName");bindClass("android.content.pm.PackageManager");
-
+bindClass("android.widget.FrameLayout");bindClass("android.widget.LinearLayout");bindClass("android.widget.TextView");bindClass("android.widget.ImageView");bindClass("android.graphics.Color");bindClass("android.graphics.drawable.GradientDrawable");bindClass("android.view.Gravity");bindClass("android.view.View");bindClass("android.content.Intent");bindClass("android.content.ComponentName");bindClass("android.content.pm.PackageManager");
 var ctx=LL.getContext(),pm=ctx.getPackageManager();
-
-var APP="phone";
-var THEME="SOLID";
-var COLOR_SOLID="#FFFFFF";
-var COLOR_BLUR="#55FFFFFF";
-var BORDER_COLOR="#1A000000";
-var BORDER_WIDTH=2;
-var ICON_MARGIN=12;
-
-var A={n:APP,cn:null,icon:null};
-var it=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
-var ls=pm.queryIntentActivities(it,0);
-for(var i=0;i<ls.size();i++){var ai=ls.get(i).activityInfo,nm=ls.get(i).loadLabel(pm).toString();if(nm.toLowerCase().indexOf(APP.toLowerCase())>-1){A={n:nm,cn:new ComponentName(ai.packageName,ai.name),icon:null};break;}}
-if(A.cn)try{A.icon=pm.getActivityIcon(A.cn);}catch(e){}
-
-var isSolid=THEME==="SOLID";
-var bgColor=isSolid?COLOR_SOLID:COLOR_BLUR;
-
+var Q="phone";
+var C={p:[16,12,16,12],gap:22,r:280,bg:"#33FFFFFF",bc:"#55FFFFFF",bw:2,tc:"#FFFFFFFF",tm:2,ts:10,Ts:18,is:0.8};
+var A=null;var it=new Intent(Intent.ACTION_MAIN);it.addCategory(Intent.CATEGORY_LAUNCHER);var ls=pm.queryIntentActivities(it,0);for(var i=0;i<ls.size();i++){var ai=ls.get(i).activityInfo,nm=ls.get(i).loadLabel(pm).toString();if(nm.toLowerCase().indexOf(Q.toLowerCase())>-1){A={n:nm,cn:new ComponentName(ai.packageName,ai.name),icon:null};break;}}if(!A)A={n:Q,cn:null,icon:null};if(A.cn)try{A.icon=pm.getActivityIcon(A.cn);}catch(e){}
 var R=new FrameLayout(ctx);R.setMinimumWidth(20);R.setMinimumHeight(20);R.setClipToOutline(true);
-var gd=new GradientDrawable();gd.setColor(Color.parseColor(bgColor));gd.setStroke(BORDER_WIDTH,Color.parseColor(BORDER_COLOR));R.setBackground(gd);
-if(isSolid){try{R.setElevation(15);}catch(e){}}else{try{R.setBackgroundBlur(60,[100,100,100,100,100,100,100,100]);}catch(e){}}
-
-var iw=new FrameLayout(ctx);iw.setClipToOutline(true);
-var iwGd=new GradientDrawable();iwGd.setColor(Color.parseColor("#00000000"));iwGd.setStroke(BORDER_WIDTH,Color.parseColor(BORDER_COLOR));iw.setBackground(iwGd);
-
-var iv=new ImageView(ctx);if(A.icon)iv.setImageDrawable(A.icon);iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-iw.addView(iv,new FrameLayout.LayoutParams(-1,-1));
-R.addView(iw,new FrameLayout.LayoutParams(-1,-1,17));
-
+var gd=new GradientDrawable();gd.setColor(Color.parseColor(C.bg));gd.setCornerRadius(C.r);gd.setStroke(C.bw,Color.parseColor(C.bc));R.setBackground(gd);try{R.setBackgroundBlur(40,[C.r,C.r,C.r,C.r,C.r,C.r,C.r,C.r]);}catch(e){}
+var W=new LinearLayout(ctx);W.setOrientation(1);W.setGravity(17);W.setPadding(C.p[0],C.p[1],C.p[2],C.p[3]);var iv=new ImageView(ctx);if(A.icon)iv.setImageDrawable(A.icon);iv.setScaleType(ImageView.ScaleType.FIT_CENTER);var lb=new TextView(ctx);lb.setText(A.n);lb.setTextColor(Color.parseColor(C.tc));lb.setGravity(17);lb.setMaxLines(C.tm);lb.setSingleLine(C.tm===1);try{lb.setEllipsize(android.text.TextUtils.TruncateAt.END);}catch(e){}W.addView(iv);W.addView(lb);R.addView(W,new FrameLayout.LayoutParams(-1,-1));
+var ivLp=new LinearLayout.LayoutParams(0,0);var lbLpH=new LinearLayout.LayoutParams(-2,-2);lbLpH.gravity=17;var lbLpV=new LinearLayout.LayoutParams(-2,-2);lbLpV.gravity=17;
 R.addOnLayoutChangeListener(new View.OnLayoutChangeListener({onLayoutChange:function(v,l,t,r,b,ol,ot,orr,ob){
-    var cw=r-l,ch=b-t;if(cw<10||ch<10)return;
-    var minor=Math.min(cw,ch);
-    
-    // Pill radius = half minor (auto: circle or pill ends)
-    var cr=Math.floor(minor/2);
-    gd.setCornerRadius(cr);
-    
-    // Icon wrapper stays SQUARE, size follows minor
-    var margin=Math.max(2,Math.floor(minor*(ICON_MARGIN/100)));
-    var iSize=minor-margin*2;
-    if(iSize<8)iSize=8;
-    
-    // Icon border radius changes: round when pill is square, less round when pill is rectangle
-    // Ratio = minor/major → 1.0 for square (full round), <1.0 for rectangle (less round)
-    var major=Math.max(cw,ch);
-    var ratio=minor/major;
-    var iwRadius=Math.floor((iSize/2)*ratio);
-    if(iwRadius<4)iwRadius=4;
-    iwGd.setCornerRadius(iwRadius);
-    
-    var lp=iw.getLayoutParams();
-    lp.width=iSize;lp.height=iSize;
-    lp.setMargins(margin,margin,margin,margin);
-    iw.setLayoutParams(lp);
+    var w=r-l,h=b-t;if(w===0||h===0)return;
+    var H=w>h,sz,ts,gap=Math.floor(C.gap*(Math.min(w,h)/200));
+    if(H){W.setOrientation(0);W.setGravity(17);sz=Math.floor(Math.min(h*C.is,w*0.35));ts=Math.max(C.ts,Math.min(C.Ts,h*0.12));ivLp.width=sz;ivLp.height=sz;iv.setLayoutParams(ivLp);lbLpH.setMargins(gap,0,0,0);lb.setLayoutParams(lbLpH);lb.setPadding(0,0,0,0);lb.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,ts);lb.setGravity(17);}
+    else{W.setOrientation(1);W.setGravity(17);sz=Math.floor(Math.min(w*0.5,h*C.is));ts=Math.max(C.ts,Math.min(C.Ts,w*0.08));ivLp.width=sz;ivLp.height=sz;iv.setLayoutParams(ivLp);lbLpV.setMargins(0,gap,0,0);lb.setLayoutParams(lbLpV);lb.setPadding(0,0,0,0);lb.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,ts);lb.setGravity(17);}
 }}));
-
-R.setClickable(true);
-R.setOnTouchListener(new View.OnTouchListener({onTouch:function(v,e){var a=e.getAction();if(a===0){v.animate().scaleX(0.92).scaleY(0.92).setDuration(120).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();if(!isSolid)v.setAlpha(0.8);}else if(a===1||a===3){v.animate().scaleX(1.0).scaleY(1.0).setDuration(350).setInterpolator(new android.view.animation.OvershootInterpolator(1.2)).start();if(!isSolid)v.setAlpha(1.0);}return false;}}));
+R.setClickable(true);R.setOnTouchListener(new View.OnTouchListener({onTouch:function(v,e){var a=e.getAction();if(a===0){v.animate().scaleX(0.95).scaleY(0.95).setDuration(80).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();v.setAlpha(0.8);}else if(a===1||a===3){v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).setInterpolator(new android.view.animation.OvershootInterpolator(1.5)).start();v.setAlpha(1.0);}return false;}}));
 R.setOnClickListener(new View.OnClickListener({onClick:function(v){if(A.cn)try{ctx.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(A.cn).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}catch(e){}}}));
 return R;
