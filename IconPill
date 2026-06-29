@@ -12,39 +12,57 @@ bindClass("android.util.TypedValue");
 
 var ctx = LL.getContext(), pm = ctx.getPackageManager();
 
-// --- 1. CONFIGURATION (Configure limits, not fixed sizes) ---
-var Q = "phone"; // <── APP NAME
-var C = {
-    // Sizing rules (Min, Max, and Scaling Ratio)
-    iMin: 48,  iMax: 200, iRatio: 0.5,   // Icon takes ~50% of the smallest side
-    tMin: 22,  tMax: 60,  tRatio: 0.15,  // Text scales based on the smallest side
-    gapRatio: 0.08,                      // Gap between icon and text
-    // Styling
-    bg: "#44000000", bc: "#77FFFFFF", bw: 3, tc: "#FFFFFF"
-};
+// ==========================================
+// 🛠️ PREMIUM CONFIGURATION (SAMSUNG / MIUI)
+// ==========================================
+var CONFIG = {
+    APP_NAME: "phone",         
+    
+    // 🎨 THEME TOGGLE: "SOLID" (No Transparency) OR "BLUR" (Glassmorphism)
+    THEME: "SOLID",            
 
-// --- 2. FETCH APP DATA ---
-var A = { n: Q, cn: null, icon: null };
+    // Colors
+    COLOR_SOLID: "#FFFFFF",    // 100% Opaque White for Solid theme
+    COLOR_BLUR: "#55FFFFFF",   // Semi-transparent for Blur theme
+    TEXT_COLOR: "#111111",     // Dark text
+    BORDER_COLOR: "#1A000000", // Subtle premium border
+    BORDER_WIDTH: 2,           
+
+    // 📐 PROPORTIONS (%) - Zero Bleed Math
+    PADDING_PCT: 26,    // Container padding
+    ICON_PCT: 95,       // Icon size relative to thickness
+    GAP_PCT: 8          // Gap between icon and text
+};
+// ==========================================
+
+// --- 1. FETCH APP DATA ---
+var A = { n: CONFIG.APP_NAME, cn: null, icon: null };
 var it = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
 var ls = pm.queryIntentActivities(it, 0);
 for (var i = 0; i < ls.size(); i++) {
     var ai = ls.get(i).activityInfo, nm = ls.get(i).loadLabel(pm).toString();
-    if (nm.toLowerCase().indexOf(Q.toLowerCase()) > -1) {
+    if (nm.toLowerCase().indexOf(CONFIG.APP_NAME.toLowerCase()) > -1) {
         A = { n: nm, cn: new ComponentName(ai.packageName, ai.name), icon: null };
         break;
     }
 }
 if (A.cn) try { A.icon = pm.getActivityIcon(A.cn); } catch(e) {}
 
-// --- 3. BUILD UI (NO WRAPPERS - Just 1 Box, 1 Icon, 1 Label) ---
+// --- 2. BUILD PREMIUM UI ---
 var box = new LinearLayout(ctx);
-box.setGravity(Gravity.CENTER); // Always keeps contents perfectly centered
+box.setGravity(Gravity.CENTER);
 
+var isSolid = (CONFIG.THEME.toUpperCase() === "SOLID");
 var gd = new GradientDrawable();
-gd.setColor(Color.parseColor(C.bg));
-gd.setStroke(C.bw, Color.parseColor(C.bc));
+gd.setColor(Color.parseColor(isSolid ? CONFIG.COLOR_SOLID : CONFIG.COLOR_BLUR));
+gd.setStroke(CONFIG.BORDER_WIDTH, Color.parseColor(CONFIG.BORDER_COLOR));
 box.setBackground(gd);
-try { box.setBackgroundBlur(40, [100,100,100,100,100,100,100,100]); } catch(e) {}
+
+if (isSolid) {
+    try { box.setElevation(15); } catch(e) {} // Premium Samsung Shadow for Solid
+} else {
+    try { box.setBackgroundBlur(60, [100,100,100,100,100,100,100,100]); } catch(e) {}
+}
 
 var iv = new ImageView(ctx);
 if (A.icon) iv.setImageDrawable(A.icon);
@@ -53,62 +71,84 @@ iv.setAdjustViewBounds(true);
 
 var lb = new TextView(ctx);
 lb.setText(A.n);
-lb.setTextColor(Color.parseColor(C.tc));
+lb.setTextColor(Color.parseColor(CONFIG.TEXT_COLOR));
 lb.setGravity(Gravity.CENTER);
-lb.setSingleLine(true);
-try { lb.setEllipsize(android.text.TextUtils.TruncateAt.END); } catch(e) {}
-try { lb.setShadowLayer(3, 0, 2, Color.parseColor("#80000000")); } catch(e) {}
+lb.setTypeface(android.graphics.Typeface.create("sans-serif-medium", 0));
+
+// ⚠️ MAGIC: SMART TEXT WRAP & AUTO-SCALE (No Ellipsize)
+lb.setSingleLine(false); // Allow multiple lines
+lb.setMaxLines(2);       // Max 2 lines keeps it looking clean like a pill
+try {
+    // This tells Android to auto-shrink the text to fit the exact width/height box
+    // minSize: 12px, maxSize: 100px, step: 1px
+    lb.setAutoSizeTextTypeUniformWithConfiguration(12, 100, 1, TypedValue.COMPLEX_UNIT_PX);
+} catch(e) {
+    // Fallback if Android version is too old
+    lb.setEllipsize(android.text.TextUtils.TruncateAt.END);
+}
 
 box.addView(iv);
 box.addView(lb);
 
-// --- 4. RESPONSIVE AUTO-SCALING ENGINE ---
+// --- 3. THE STRICT BOUNDARY ENGINE ---
 box.addOnLayoutChangeListener(new View.OnLayoutChangeListener({
     onLayoutChange: function(v, l, t, r, b, ol, ot, orr, ob) {
         var w = r - l, h = b - t;
-        if (w === 0 || h === 0) return;
+        if (w <= 0 || h <= 0) return;
 
-        // Auto-perfect pill radius (always perfectly rounded edges)
         var minor = Math.min(w, h);
+        var major = Math.max(w, h);
+        var isWide = w > h;
+
         gd.setCornerRadius(minor / 2);
 
-        // Layout Profile detection
-        var isWide = w > h;
-        box.setOrientation(isWide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+        var pad = Math.floor(minor * (CONFIG.PADDING_PCT / 100));
+        box.setPadding(pad, pad, pad, pad);
 
-        // Calculate constrained sizes based on available space
-        var iSize = Math.max(C.iMin, Math.min(C.iMax, minor * C.iRatio));
-        var tSize = Math.max(C.tMin, Math.min(C.tMax, minor * C.tRatio));
-        var gap = Math.max(8, minor * C.gapRatio);
+        var uMinor = Math.max(0, minor - (pad * 2));
+        var uMajor = Math.max(0, major - (pad * 2));
 
-        // Apply Icon Size
+        var iSize = Math.floor(uMinor * (CONFIG.ICON_PCT / 100));
+        var gap   = Math.floor(uMinor * (CONFIG.GAP_PCT / 100));
+
         iv.setLayoutParams(new LinearLayout.LayoutParams(iSize, iSize));
 
-        // Apply Gap and Text Size
-        var lp = new LinearLayout.LayoutParams(-2, -2);
+        // ⚠️ TEXT BOUNDARY CALCULATION:
+        // Instead of WRAP_CONTENT, we explicitly tell the TextView EXACTLY 
+        // how much space it is allowed to use. The Auto-Size engine takes care of the rest.
+        var textW, textH, lp;
         if (isWide) {
-            lp.setMargins(gap, 0, 0, 0); // Gap on left
+            box.setOrientation(LinearLayout.HORIZONTAL);
+            textW = Math.max(0, uMajor - iSize - gap);
+            textH = uMinor;
+            lp = new LinearLayout.LayoutParams(textW, textH);
+            lp.setMargins(gap, 0, 0, 0);
         } else {
-            lp.setMargins(0, gap, 0, 0); // Gap on top
+            box.setOrientation(LinearLayout.VERTICAL);
+            textW = uMinor;
+            textH = Math.max(0, uMajor - iSize - gap);
+            lp = new LinearLayout.LayoutParams(textW, textH);
+            lp.setMargins(0, gap, 0, 0);
         }
+        
         lb.setLayoutParams(lp);
         
-        // Use PX instead of SP to prevent system font scaling from breaking the math
-        lb.setTextSize(TypedValue.COMPLEX_UNIT_PX, tSize); 
+        // Hide if literally no space is left
+        lb.setVisibility((textW > 0 && textH > 0) ? View.VISIBLE : View.GONE);
     }
 }));
 
-// --- 5. INTERACTION & ANIMATION ---
+// --- 4. BUTTERY INTERACTION ---
 box.setClickable(true);
 box.setOnTouchListener(new View.OnTouchListener({
     onTouch: function(v, e) {
         var a = e.getAction();
-        if (a === 0) { // DOWN
-            v.animate().scaleX(0.92).scaleY(0.92).setDuration(100).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
-            v.setAlpha(0.7);
-        } else if (a === 1 || a === 3) { // UP / CANCEL
-            v.animate().scaleX(1.0).scaleY(1.0).setDuration(250).setInterpolator(new android.view.animation.OvershootInterpolator(1.5)).start();
-            v.setAlpha(1.0);
+        if (a === 0) { 
+            v.animate().scaleX(0.92).scaleY(0.92).setDuration(120).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+            if(!isSolid) v.setAlpha(0.8);
+        } else if (a === 1 || a === 3) { 
+            v.animate().scaleX(1.0).scaleY(1.0).setDuration(350).setInterpolator(new android.view.animation.OvershootInterpolator(1.2)).start();
+            if(!isSolid) v.setAlpha(1.0);
         }
         return false;
     }
