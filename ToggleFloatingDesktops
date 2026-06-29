@@ -1,69 +1,53 @@
-//togglefloating
 try{
 
-imp("Tc","TAnim","TFloating");
+bindClass("android.os.Handler");
+bindClass("java.lang.Runnable");
 
-var c=getConfiguration(),
-    i=getEvent().getData(),
-    s=TFloating();
+var o="";
 
-if(!i){
- if(s)LL.runAction(43);
+var fs=getFloatingScreen(),f=fs.getClass().getDeclaredField("mScreen");
+f.setAccessible(true);
+var ws=f.get(fs);
 
-}else if(s&&c.getFloatingDesktopId()==i){
- LL.runAction(43);
+f=ws.getClass().getDeclaredField("this$0");
+f.setAccessible(true);
+var svc=f.get(ws);
 
-}else{
+var c=svc.getClass();
 
- var x=s&&c.getFloatingDesktopId()!=i;
-
- c.setFloatingDesktopId(i);
-
- try{
-  getFloatingScreen().getCurrentDesktop().setPosition(0,0,1,false);
- }catch(e){}
-
- LL.runAction(42);
-
- if(x){
-
-  var sc=getFloatingScreen().getScreen(),
-      f=sc.getClass().getDeclaredField("this$0");
-  f.setAccessible(true);
-
-  var w=f.get(sc),
-      cf=w.getClass().getDeclaredField("mContentView");
-  cf.setAccessible(true);
-
-  var cv=cf.get(w),
-      v=cv?cv.getChildAt(0):null;
-
-  if(v){
-
-   v.setVisibility(4);
-
-   v.postDelayed(new java.lang.Runnable({run:function(){
-
-    v.setVisibility(0);
-
-    v.setAlpha(0);
-    v.setScaleX(.97);
-    v.setScaleY(.97);
-    v.setTranslationY(48);
-
-    TAnim(v,"ALPHA",1,"STIFFNESS_HIGH","DAMPING_RATIO_NO_BOUNCY");
-    TAnim(v,"SCALE_X",1,"STIFFNESS_MEDIUM","DAMPING_RATIO_MEDIUM_BOUNCY");
-    TAnim(v,"SCALE_Y",1,"STIFFNESS_MEDIUM","DAMPING_RATIO_MEDIUM_BOUNCY");
-    TAnim(v,"TRANSLATION_Y",0,"STIFFNESS_HIGH","DAMPING_RATIO_NO_BOUNCY");
-
-   }}),300);
-
-  }
-
- }
-
+function G(n){
+ var x=c.getDeclaredField(n);
+ x.setAccessible(true);
+ return x.get(svc);
 }
 
+var pos=G("mOverlayShowHandlePosition");
+var w=G("mWorkspaceView");
+
+var m=c.getDeclaredMethod(
+ "showWorkspace",
+ pos.getClass(),
+ java.lang.Boolean.TYPE,
+ java.lang.Long.TYPE
+);
+m.setAccessible(true);
+m.invoke(svc,[pos,java.lang.Boolean.TRUE,new java.lang.Long("40")]);
+
+new Handler().postDelayed(new Runnable({
+run:function(){
+
+o+="Before TY="+w.getTranslationY()+"\n";
+
+w.animate().cancel();
+w.setTranslationY(0);
+
+o+="After TY="+w.getTranslationY();
+
+Tc(o);
+
+}
+}),1000);
+
 }catch(e){
- Tc(e+"\nL:"+e.lineNumber);
+Tc(e+"\nL:"+e.lineNumber);
 }

@@ -1,0 +1,26 @@
+===== Lightning Launcher Runtime =====
+
+Rhino Language Version : <unavailable>
+Optimization Level : <unavailable>
+
+===== Java =====
+Java Version : 0
+VM Name : Dalvik
+VM Vendor : The Android Project
+VM Version : 2.1.0
+
+===== Android =====
+SDK : 36
+Release : 16
+Codename : REL
+Brand : POCO
+Manufacturer : Xiaomi
+Device : onyx
+Model : 25053PC47I
+Hardware : qcom
+Fingerprint : POCO/onyx_in/onyx:16/BP2A.250605.031.A3/OS3.0.301.0.WOLINXM:user/release-keys
+
+===== Lightning Launcher =====
+LL Class : net.pierrox.lightning_launcher.script.api.LL
+FloatingScreen : net.pierrox.lightning_launcher.script.api.screen.Screen
+Event : net.pierrox.lightning_launcher.script.api.Event
