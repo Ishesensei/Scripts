@@ -5,38 +5,41 @@ var ctx=LL.getContext(),pm=ctx.getPackageManager();
 var Q="phone";
 
 var BOX={p:[16,12,16,12],gap:18,r:280,bg:"#33FFFFFF",bc:"#55FFFFFF",bw:2};
-var BLUR={on:true,radius:40};
-var TINT={color:"#FFFFFF",alpha:0.0};
+var BLUR={on:true,radius:80};
 var ICON={margin:.10,wrapBg:"#00000000",wrapOn:true,wrapRad:0,minSize:24};
 var TEXT={c:"#FFFFFFFF",tm:1,ts:1,Ts:18,sidePad:25};
 
-function alp(hex,a){
-    var aa=Math.floor(Math.max(0,Math.min(1,a))*255);
-    var ah=aa.toString(16);if(ah.length<2)ah="0"+ah;
-    if(hex.length===9)hex=hex.substring(0,7);
-    return hex+ah;
+// --- Glass function (POCO F7 style) ---
+function glass(v,rd){
+    var r=rd||BOX.r;
+    v.setClipToOutline(false);
+    var d=new GradientDrawable();
+    d.setColor(Color.TRANSPARENT);
+    d.setCornerRadius(r);
+    d.setStroke(BOX.bw,Color.parseColor(BOX.bc));
+    v.setBackground(d);
+    if(BLUR.on){
+        try{
+            v.setBackgroundBlur(BLUR.radius,[r,r,r,r,r,r,r,r]);
+            if(typeof v.setBackgroundBlurAlpha==="function")v.setBackgroundBlurAlpha(1.0);
+            if(typeof v.setBackgroundBlurCrop==="function")v.setBackgroundBlurCrop(true);
+            if(typeof v.disableMiBackgroundContainBelow==="function")v.disableMiBackgroundContainBelow();
+            if(typeof v.clearMiBackgroundBlendColor==="function")v.clearMiBackgroundBlendColor();
+            if(typeof v.addMiBackgroundBlendColor==="function")v.addMiBackgroundBlendColor(Color.parseColor(BOX.bg),1);
+        }catch(e){}
+    }
 }
-
-var bgAlpha=BLUR.on?0.20:0.85;
-var bdAlpha=BLUR.on?0.33:0.65;
-var Bg=alp(BOX.bg,bgAlpha);
-var Bd=alp(BOX.bc,bdAlpha);
 
 var A=null;
 var it=new Intent(Intent.ACTION_MAIN);it.addCategory(Intent.CATEGORY_LAUNCHER);var ls=pm.queryIntentActivities(it,0);
 for(var i=0;i<ls.size();i++){var ai=ls.get(i).activityInfo,nm=""+ls.get(i).loadLabel(pm);if(nm.toLowerCase().indexOf(Q.toLowerCase())>-1){A={n:nm,cn:new ComponentName(ai.packageName,ai.name),icon:null};break;}}
 if(!A)A={n:Q,cn:null,icon:null};if(A.cn)try{A.icon=pm.getActivityIcon(A.cn);}catch(e){}
 
-var R=new FrameLayout(ctx);R.setMinimumWidth(20);R.setMinimumHeight(20);R.setClipToOutline(true);
-
-var gd=new GradientDrawable();gd.setColor(Color.parseColor(Bg));gd.setCornerRadius(BOX.r);gd.setStroke(BOX.bw,Color.parseColor(Bd));R.setBackground(gd);
-
-if(BLUR.on){try{R.setBackgroundBlur(BLUR.radius,[BOX.r,BOX.r,BOX.r,BOX.r,BOX.r,BOX.r,BOX.r,BOX.r]);R.addMiBackgroundBlendColor(Color.parseColor("#55FFFFFF"),1);}catch(e){}}
-
-if(TINT.alpha>0){var to=new FrameLayout(ctx);to.setBackgroundColor(Color.parseColor(alp(TINT.color,TINT.alpha)));R.addView(to,new FrameLayout.LayoutParams(-1,-1));}
+var R=new FrameLayout(ctx);R.setMinimumWidth(20);R.setMinimumHeight(20);
+glass(R);
 
 var iw=new FrameLayout(ctx);iw.setClipToOutline(true);
-var iwGd=new GradientDrawable();iwGd.setColor(Color.parseColor(ICON.wrapBg));iwGd.setStroke(BOX.bw,Color.parseColor(Bd));iw.setBackground(iwGd);
+var iwGd=new GradientDrawable();iwGd.setColor(Color.parseColor(ICON.wrapBg));iwGd.setStroke(BOX.bw,Color.parseColor(BOX.bc));iw.setBackground(iwGd);
 iw.setVisibility(ICON.wrapOn?0:8);
 var iv=new ImageView(ctx);if(A.icon)iv.setImageDrawable(A.icon);iv.setScaleType(ImageView.ScaleType.FIT_CENTER);iw.addView(iv,new FrameLayout.LayoutParams(-1,-1));
 
@@ -50,6 +53,21 @@ R.addOnLayoutChangeListener(new View.OnLayoutChangeListener({onLayoutChange:func
 var w=r-l,h=b-t;if(w<2||h<2)return;
 var H=w>h,c=Math.min(w,h),p=Math.round(c*.12),g=Math.round(c*.08);
 W.setPadding(p,p,p,p);var aw=w-p*2,ah=h-p*2,wrap,icon;
+
+var rr=Math.floor(c/2);
+// Update glass background with new radius
+var bg=R.getBackground();
+if(bg){
+    try{
+        // Handle LayerDrawable from MIUI blur
+        if(bg.getClass&&bg.getClass().getName&&bg.getClass().getName().indexOf("LayerDrawable")>-1){
+            var d0=bg.getDrawable(0);
+            if(d0&&d0.setCornerRadius)d0.setCornerRadius(rr);
+        }
+    }catch(e){}
+    // Re-apply glass
+    glass(R,rr);
+}
 
 var words=A.n.split(" ");var minWordW=0;
 lb.setTextSize(TypedValue.COMPLEX_UNIT_SP,TEXT.ts);var paint=lb.getPaint();
@@ -81,7 +99,6 @@ lb.setGravity(17);lb.setSingleLine(false);lb.setMaxLines(TEXT.tm);lb.setEllipsiz
 lb.setAutoSizeTextTypeUniformWithConfiguration(TEXT.ts,TEXT.Ts*4,1,TypedValue.COMPLEX_UNIT_SP);
 }
 if(ICON.wrapOn){var wr=ICON.wrapRad>0?Math.round(c*(ICON.wrapRad/200)):Math.round(wrap/2);iwGd.setCornerRadius(wr);}
-gd.setCornerRadius(c/2);
 }}));
 
 R.setClickable(true);R.setOnTouchListener(new View.OnTouchListener({onTouch:function(v,e){var a=e.getAction();if(a===0){v.animate().scaleX(.95).scaleY(.95).setDuration(80).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();v.setAlpha(.8);}else if(a===1||a===3){v.animate().scaleX(1).scaleY(1).setDuration(200).setInterpolator(new android.view.animation.OvershootInterpolator(1.5)).start();v.setAlpha(1);}return false;}}));
