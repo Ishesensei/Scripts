@@ -1,0 +1,184 @@
+MIUI Blur & Animation Guide for Rhino Lightning Launcher
+
+---
+
+MIUI BLUR — The Right Way
+
+Core principle: MIUI blur is a hardware compositor effect, not a software drawable. The view's background must be Color.TRANSPARENT so the blur engine can render the frosted surface behind it.
+
+---
+
+✅ DO: Basic MIUI Blur Setup
+
+```javascript
+function glass(view, radius) {
+    view.setClipToOutline(false);  // CRITICAL: let MIUI handle clipping, not Android
+    
+    var drawable = new GradientDrawable();
+    drawable.setColor(Color.TRANSPARENT);  // CRITICAL: transparent, not translucent
+    drawable.setCornerRadius(radius);
+    drawable.setStroke(borderWidth, borderColor);
+    view.setBackground(drawable);
+    
+    // MIUI blur pipeline
+    view.setBackgroundBlur(blurRadius, [radius,radius,radius,radius,radius,radius,radius,radius]);
+    view.setBackgroundBlurAlpha(1.0);           // Separate alpha from drawable
+    view.setBackgroundBlurCrop(true);            // Clips blur to corners
+    view.disableMiBackgroundContainBelow();      // Prevents containment issues
+    view.clearMiBackgroundBlendColor();          // Clear previous tints
+    view.addMiBackgroundBlendColor(blendColor, 1); // Tint through MIUI, not drawable
+}
+```
+
+---
+
+❌ DON'T: Common Mistakes
+
+Wrong Why Right
+drawable.setColor("#33FFFFFF") Alpha in drawable fights with blur engine drawable.setColor(Color.TRANSPARENT)
+view.setClipToOutline(true) Android clipping conflicts with MIUI blur crop view.setClipToOutline(false) + setBackgroundBlurCrop(true)
+Adding tint FrameLayout overlay Creates extra compositing layer, breaks blur addMiBackgroundBlendColor(color, alpha)
+setBackgroundBlur(radius, corners) alone Missing alpha/crop causes edge bleeding Full pipeline: blur → alpha → crop → blend
+Modifying background after blur set MIUI wraps it in LayerDrawable, direct access breaks Re-call glass() with new radius
+
+---
+
+🔧 MIUI Blur Methods Reference
+
+Method Purpose When to use
+setBackgroundBlur(radius, [corners]) Main blur effect Always
+setBackgroundBlurAlpha(0.0-1.0) Blur opacity separate from drawable Always
+setBackgroundBlurCrop(true) Clips blur to corner radius Always (prevents edge bleeding)
+addMiBackgroundBlendColor(color, intensity) Tint the blurred surface For frosted glass color
+clearMiBackgroundBlendColor() Remove previous tints Before adding new blend
+disableMiBackgroundContainBelow() Prevents blur containment bugs Always
+setBackgroundGradientBlurParams(...) Gradient blur (HyperOS) Instead of uniform blur
+chooseBackgroundBlurContainer() Selects blur container Advanced layout cases
+getBackGroundBlurContainer() Gets current blur container Debugging
+
+---
+
+MIUI SPRING ANIMATIONS
+
+```javascript
+bindClass("miuix.system.animation.physics.SpringAnimation");
+bindClass("miuix.system.animation.physics.SpringForce");
+bindClass("miuix.system.animation.property.ViewProperty");
+```
+
+✅ DO: Proper Spring Animation
+
+```javascript
+// Preset physics (from your POCO F7)
+var SPRING = {
+    ENTRANCE: [SpringForce.STIFFNESS_MEDIUM, SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY],
+    PRESS:    [SpringForce.STIFFNESS_HIGH,   SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY],
+    RELEASE:  [SpringForce.STIFFNESS_LOW,    SpringForce.DAMPING_RATIO_HIGH_BOUNCY],
+    NUDGE:    [SpringForce.STIFFNESS_HIGH,   0.1]
+};
+
+function spring(view, property, target, stiffness, damping, velocity) {
+    var anim = new SpringAnimation(view, property, target);
+    var pad = Math.max(200, Math.abs(target) * 1.5 + 100);
+    anim.setMaxValue(target + pad);
+    anim.setMinValue(target - pad);
+    var force = new SpringForce(target);
+    force.setStiffness(stiffness);
+    force.setDampingRatio(damping);
+    anim.setSpring(force);
+    if (velocity) anim.setStartVelocity(velocity);
+    anim.start();
+}
+
+// Usage
+spring(card, ViewProperty.SCALE_X, 0.95, SPRING.PRESS[0], SPRING.PRESS[1]);
+spring(card, ViewProperty.SCALE_Y, 0.95, SPRING.PRESS[0], SPRING.PRESS[1]);
+```
+
+---
+
+❌ DON'T: Spring Mistakes
+
+Wrong Why Right
+new SpringAnimation without min/max Spring can overshoot and clip Set setMaxValue/setMinValue with padding
+Same stiffness for everything Press should be snappy, release bouncy Use presets: HIGH for press, LOW for release
+startVelocity always 0 Release feels dead Add velocity on release for natural bounce
+No setStartVelocity on nudge Shake feels weak High velocity (3500) for sharp shake
+Creating new SpringForce each frame GC pressure Pool or cache if called frequently
+
+---
+
+🎯 Spring Presets Guide
+
+Preset Stiffness Damping Feel Use for
+ENTRANCE MEDIUM MEDIUM_BOUNCY Smooth rise + gentle settle Cards appearing
+PRESS HIGH MEDIUM_BOUNCY Snappy compression Touch down
+RELEASE LOW HIGH_BOUNCY Soft bounce back Touch up
+NUDGE HIGH 0.1 (near-critical) Sharp shake, few oscillations Error feedback
+WOBBLY LOW HIGH_BOUNCY Lots of overshoot Playful drawer cells
+SNAPPY MEDIUM LOW_BOUNCY Quick settle, minimal bounce Fast transitions
+
+---
+
+📐 Animateable Properties
+
+```javascript
+ViewProperty.ALPHA          // 0 to 1
+ViewProperty.SCALE_X        // 0 to ∞
+ViewProperty.SCALE_Y        // 0 to ∞
+ViewProperty.TRANSLATION_X  // pixels
+ViewProperty.TRANSLATION_Y  // pixels
+ViewProperty.TRANSLATION_Z  // pixels
+ViewProperty.ROTATION       // degrees
+ViewProperty.ROTATION_X     // degrees (3D)
+ViewProperty.ROTATION_Y     // degrees (3D)
+```
+
+---
+
+🔄 Spring + Blur Together: Full Example
+
+```javascript
+// Build glass card
+var card = new FrameLayout(ctx);
+glass(card, 40);  // MIUI blur
+
+// Entrance animation
+card.setAlpha(0);
+card.setTranslationY(30);
+card.postDelayed(function() {
+    spring(card, ViewProperty.ALPHA, 1, SPRING.ENTRANCE[0], SPRING.ENTRANCE[1]);
+    spring(card, ViewProperty.TRANSLATION_Y, 0, SPRING.ENTRANCE[0], SPRING.ENTRANCE[1]);
+}, delay);
+
+// Touch feedback
+card.setOnTouchListener(function(v, e) {
+    if (e.getAction() === 0) {  // DOWN
+        spring(v, ViewProperty.SCALE_X, 0.94, SPRING.PRESS[0], SPRING.PRESS[1]);
+        spring(v, ViewProperty.SCALE_Y, 0.94, SPRING.PRESS[0], SPRING.PRESS[1]);
+    } else if (e.getAction() === 1) {  // UP
+        spring(v, ViewProperty.SCALE_X, 1, SPRING.RELEASE[0], SPRING.RELEASE[1], 10);
+        spring(v, ViewProperty.SCALE_Y, 1, SPRING.RELEASE[0], SPRING.RELEASE[1], -10);
+    }
+    return false;
+});
+```
+
+---
+
+Quick Checklist
+
+Blur:
+
+· setColor(Color.TRANSPARENT) not translucent
+· setClipToOutline(false)
+· setBackgroundBlurCrop(true)
+· addMiBackgroundBlendColor() for tint, not overlay views
+· Re-apply glass() when radius changes
+
+Spring:
+
+· Set min/max values with padding
+· Use preset stiffness/damping pairs
+· Add start velocity on release
+· return false in touch listeners so scroll works
