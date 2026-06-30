@@ -1,178 +1,101 @@
-//================================================
-// SETUP CODE - FIXED
-//================================================
+// ============================================
+// ENVIRONMENT SETUP v11 — With Tcomp + App Cache
+// ============================================
+
+// ---------- BIND ALL CLASSES ----------
+var cls="android.content.Intent,android.content.pm.PackageManager,android.content.ComponentName,android.graphics.Bitmap,android.graphics.Canvas,android.graphics.Paint,android.graphics.drawable.BitmapDrawable,android.graphics.BitmapFactory,android.graphics.drawable.Drawable,java.io.File,android.util.TypedValue,android.widget.FrameLayout,android.widget.LinearLayout,android.widget.TextView,android.widget.ImageView,android.graphics.drawable.GradientDrawable,android.view.Gravity,android.view.View,android.text.TextUtils".split(",");
+for(var i=0;i<cls.length;i++)bindClass(cls[i]);
 
 // ---------- DESKTOP IDS ----------
-var d={
-idS:0,
-idD:2,
-idF1:3,
-idF2:6,
-idH:1
-};
+var d={idS:0,idD:2,idF1:3,idF2:6,idH:1};
 
 // ---------- TEMP STATE ----------
-var t={
-FlO:""
-};
+var t={FlO:""};
 
 // ---------- NAVIGATION ----------
-var n={
-idB:0
-};
+var n={idB:0};
 
 // ---------- ICON PACKS ----------
-var ip={
-idIP:0
-};
+var ip={idIP:0};
 
 // ---------- APP SEARCHER DEFAULTS ----------
-var as={
-CID:64,
-MAX:30,
-WIDTH:60,
-PAD:28,
-RAD:48,
-SH:160,
-SF:18,
-SR:40,
-RH:240,
-RPH:16,
-RPV:12,
-IR:32,
-LF:20,
-LG:24,
-BG:"#18181B",
-SBG:"#27272A",
-TC:"#FFFFFF",
-HC:"#A1A1AA"
-};
+var as={CID:64,MAX:30,WIDTH:60,PAD:28,RAD:48,SH:160,SF:18,SR:40,RH:240,RPH:16,RPV:12,IR:32,LF:20,LG:24,BG:"#18181B",SBG:"#27272A",TC:"#FFFFFF",HC:"#A1A1AA"};
+
+// ---------- BUILD APP CACHE ----------
+var PM=LL.getContext().getPackageManager();
+var apps=[],alias={},pkgs={};
+var intent=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+var list=PM.queryIntentActivities(intent,0);
+for(var i=0;i<list.size();i++){var ri=list.get(i),ai=ri.activityInfo;apps.push({n:ri.loadLabel(PM).toString(),l:ri.loadLabel(PM).toString().toLowerCase(),p:ai.packageName,c:ai.name});}
+apps.sort(function(a,b){return a.l<b.l?-1:(a.l>b.l?1:0);});
+for(var i=0;i<apps.length;i++){apps[i].i=i;alias[apps[i].l]=i;pkgs[apps[i].p]=i;}
+
+var iconPacks=[{pkg:"default",name:"Default"}];
+try{var ipIntent=new Intent("org.adw.launcher.THEMES"),ipList=PM.queryIntentActivities(ipIntent,0);for(var i=0;i<ipList.size();i++){var r=ipList.get(i);iconPacks.push({pkg:r.activityInfo.packageName,name:""+r.loadLabel(PM)});}}catch(e){}
 
 // ---------- GLOBAL FUNCTIONS ----------
-var g = {
-TAnim:"TAnim=function(v,p,t,s,d,vel){\
-if(typeof SA=='undefined'){\
-bindClass('miuix.system.animation.physics.SpringAnimation');\
-bindClass('miuix.system.animation.physics.SpringForce');\
-bindClass('miuix.system.animation.property.ViewProperty');\
-SA=SpringAnimation;SF=SpringForce;\
-}\
-p=p=='ALPHA'?ViewProperty.ALPHA:p=='SCALE_X'?ViewProperty.SCALE_X:p=='SCALE_Y'?ViewProperty.SCALE_Y:p=='TRANSLATION_X'?ViewProperty.TRANSLATION_X:p=='TRANSLATION_Y'?ViewProperty.TRANSLATION_Y:ViewProperty.ROTATION;\
-s=s=='STIFFNESS_HIGH'?SF.STIFFNESS_HIGH:s=='STIFFNESS_MEDIUM'?SF.STIFFNESS_MEDIUM:SF.STIFFNESS_LOW;\
-d=d=='DAMPING_RATIO_NO_BOUNCY'?SF.DAMPING_RATIO_NO_BOUNCY:d=='DAMPING_RATIO_MEDIUM_BOUNCY'?SF.DAMPING_RATIO_MEDIUM_BOUNCY:SF.DAMPING_RATIO_LOW_BOUNCY;\
-var a=new SA(v,p,t),f=new SF(t);\
-f.setStiffness(s);\
-f.setDampingRatio(d);\
-a.setSpring(f);\
-if(vel!=null)a.setStartVelocity(vel);\
-a.start();\
-};",
-TFloating:"TFloating=(function(){\
-var F0,W,FS,OK=0;\
-return function(){\
-try{\
-if(!OK){\
-var S=getFloatingScreen().getScreen();\
-F0=S.getClass().getDeclaredField('this$0');\
-F0.setAccessible(true);\
-W=F0.get(S);\
-FS=W.getClass().getDeclaredField('mIsShown');\
-FS.setAccessible(true);\
-OK=1;\
-}\
-return FS.getBoolean(W);\
-}catch(e){\
-return false;\
-}\
-};\
-})();",
-TDump:"TDump=function(cfg){try{var c=cfg||{},t=c.target||'net.pierrox.lightning_launcher.data.',to=c.toast||1,cp=c.copy||1,ex=c.export||1,dir=c.dir||'/storage/emulated/0/Download/Manish/LL/ll findouts',maxCls=c.maxClasses||9999,depth=c.depth||3,cons=c.constructors||1,fields=c.fields||1,methods=c.methods||1,interfaces=c.interfaces||1,inner=c.inner||1,superC=c.super||1,inherited=c.inherited||1,ret=c.returnTypes||0,recInt=c.recInterfaces||0,recSup=c.recSuper||0,recRet=c.recReturn||0,cFilter=c.classFilter||'',mFilter=c.methodFilter||'',fFilter=c.fieldFilter||'',pub=c.publicOnly||0,stat=c.staticOnly||0,sortCls=c.sortClasses||1,sortM=c.sortMethods||1,sortF=c.sortFields||1,dex=c.dex||1,fail=c.fail||1,counts=c.counts||1,summ=c.summary||1,resolve=c.resolve||1;bindClass('java.lang.Class');bindClass('java.io.File');bindClass('java.io.FileWriter');bindClass('java.text.SimpleDateFormat');bindClass('java.util.Date');bindClass('java.lang.reflect.Modifier');var O='',SEEN={},clsCnt=0,methodCnt=0,fieldCnt=0,consCnt=0;function A(x){O+=x+'\\n'}function isPkg(x){var p=['android.widget','android.view','android.graphics','android.text','android.content','android.os','android.util','android.app','android.media','java.lang','java.io','java.util','net.pierrox'];for(var i=0;i<p.length;i++){if(x.indexOf(p[i])===0)return true}return false}function S(c){var n=''+c.getName();if(SEEN[n])return true;SEEN[n]=true;return false}function isPub(m){try{return Modifier.isPublic(m.getModifiers())}catch(e){return false}}function isStat(m){try{return Modifier.isStatic(m.getModifiers())}catch(e){return false}}function filterM(m){var n=m.getName();if(mFilter&&n.indexOf(mFilter)===-1)return false;if(pub&&!isPub(m))return false;if(stat&&!isStat(m))return false;return true}function filterF(f){var n=f.getName();if(fFilter&&n.indexOf(fFilter)===-1)return false;if(pub&&!isPub(f))return false;if(stat&&!isStat(f))return false;return true}function filterC(c){var n=c.getName();if(cFilter&&n.indexOf(cFilter)===-1)return false;return true}function D(c,d){if(!c||d>depth||S(c))return;if(!filterC(c))return;clsCnt++;A('');A('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');A('📦 '+c.getName());A('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');try{A('📁 Package: '+c.getPackage().getName())}catch(e){}if(superC){try{var sc=c.getSuperclass();if(sc&&sc.getName()!=='java.lang.Object'){A('⬆️ Extends: '+sc.getName());if(recSup)D(sc,d+1)}}catch(e){}}if(interfaces){try{var inf=c.getInterfaces();if(inf&&inf.length>0){A('🔌 Implements:');for(var i=0;i<inf.length;i++){A('  '+inf[i].getName());if(recInt)D(inf[i],d+1)}}}catch(e){}}if(inner){try{var ic=c.getDeclaredClasses();if(ic&&ic.length>0){A('');A('--- INNER CLASSES ---');for(var i=0;i<ic.length;i++){A('  '+ic[i].getName());D(ic[i],d+1)}}}catch(e){}}if(cons){try{var cs=c.getDeclaredConstructors();if(cs&&cs.length>0){A('');A('🔧 CONSTRUCTORS:');var list=[];for(var i=0;i<cs.length;i++){list.push('  '+cs[i].toString());consCnt++}if(sortM)list.sort();for(var i=0;i<list.length;i++)A(list[i])}}catch(e){}}if(fields){try{var fs=c.getDeclaredFields();if(fs&&fs.length>0){A('');A('📁 FIELDS:');var list=[];for(var i=0;i<fs.length;i++){if(filterF(fs[i])){list.push('  '+fs[i].toString());fieldCnt++}}if(sortF)list.sort();for(var i=0;i<list.length;i++)A(list[i])}}catch(e){}}if(methods){try{var ms=inherited?c.getMethods():c.getDeclaredMethods();if(ms&&ms.length>0){A('');A('📋 METHODS:');var list=[];for(var i=0;i<ms.length;i++){if(filterM(ms[i])){list.push('  '+ms[i].toString());methodCnt++}}if(sortM)list.sort();for(var i=0;i<list.length&&i<100;i++)A(list[i]);if(list.length>100)A('  ... and '+(list.length-100)+' more')}}catch(e){}}if(ret){try{var ms=c.getMethods();A('');A('📤 RETURN TYPES:');var map={};for(var i=0;i<ms.length;i++){var rt=ms[i].getReturnType();if(rt){var n=rt.getName();map[n]=(map[n]||0)+1;if(recRet)D(rt,d+1)}}var keys=Object.keys(map);if(sortM)keys.sort();for(var i=0;i<keys.length;i++){A('  '+keys[i]+' ('+map[keys[i]]+'x)')}}catch(e){}}}function dumpPkg(p){A('═══════════════════════════════════════════════════════════════');A('📦 PACKAGE DUMP: '+p);A('═══════════════════════════════════════════════════════════════');A('');var cls=[],seen={};var map={'android.widget':['Button','TextView','EditText','ImageView','FrameLayout','LinearLayout','RelativeLayout','ScrollView','ListView','GridView','SeekBar','ProgressBar','CheckBox','RadioButton','Switch','Spinner','AdapterView'],'android.view':['View','ViewGroup','SurfaceView','TextureView','ViewStub','ViewPropertyAnimator','ViewTreeObserver'],'android.graphics':['Bitmap','Canvas','Paint','Rect','RectF','Color','Matrix','Path','Shader','BitmapShader','LinearGradient'],'android.graphics.drawable':['GradientDrawable','BitmapDrawable','ShapeDrawable','ColorDrawable','Drawable'],'android.content':['Context','Intent','SharedPreferences','ContentResolver'],'android.os':['Bundle','Handler','Looper','Message','Parcel','Environment'],'java.lang':['String','Integer','Boolean','Long','Float','Double','System','Thread'],'java.io':['File','FileWriter','BufferedReader','BufferedWriter']};var found=map[p]||[];for(var i=0;i<found.length;i++){try{var cl=Class.forName(p+'.'+found[i]);if(cl&&!seen[found[i]]){cls.push(found[i]);seen[found[i]]=true}}catch(e){}}if(sortCls)cls.sort();A('📊 Found '+cls.length+' classes');A('');for(var i=0;i<cls.length&&i<maxCls;i++){try{var cl=Class.forName(p+'.'+cls[i]);D(cl,0)}catch(e){if(fail)A('❌ Failed: '+cls[i]+' - '+e)}}if(cls.length>maxCls)A('... and '+(cls.length-maxCls)+' more')}A('═══════════════════════════════════════════════════════════════');A('📱 TPACKAGEDUMP');A('═══════════════════════════════════════════════════════════════');A('');A('Target: '+t);A('Generated: '+new Date());A('');try{if(isPkg(t)||t.endsWith('.')){dumpPkg(t)}else{try{var cl=Class.forName(t);A('═══════════════════════════════════════════════════════════════');A('📦 CLASS DUMP: '+t);A('═══════════════════════════════════════════════════════════════');D(cl,0)}catch(e){try{var obj=eval(t);if(obj&&obj.getClass){A('═══════════════════════════════════════════════════════════════');A('📦 OBJECT DUMP: '+t);A('═══════════════════════════════════════════════════════════════');D(obj.getClass(),0)}}catch(e2){A('❌ Could not resolve: '+t)}}}}catch(e){A('❌ Error: '+e)}if(summ){A('');A('═══════════════════════════════════════════════════════════════');A('📊 SUMMARY');A('═══════════════════════════════════════════════════════════════');A('');A('Target: '+t);A('Classes: '+clsCnt);A('Constructors: '+consCnt);A('Methods: '+methodCnt);A('Fields: '+fieldCnt);A('Generated: '+new Date())}if(ex){try{var d=new File(dir);if(!d.exists())d.mkdirs();var safe=(''+t).replace(/[<>:\"\\/\\\\|?*]/g,'.').replace(/\\s+/g,'_');var ts=new SimpleDateFormat('yyyy-MM-dd_HH-mm-ss').format(new Date());var f=new File(d,safe+'__'+ts+'.txt');var w=new FileWriter(f);w.write(O);w.close();if(to)Tc('✅ Exported: '+f.getAbsolutePath(),1,cp);return f.getAbsolutePath()}catch(e){if(to)Tc('❌ Export failed: '+e,1,cp)}}if(to){if(O.length>3000)Tc(O.substring(0,3000)+'\\n... (truncated)',1,cp);else Tc(O,1,cp)}return O}catch(e){Tc('TDump error: '+e,1,1)}}",
-TIconPackManager:"TIconPackManager=function(){try{bindClass('java.io.File');bindClass('android.content.Intent');bindClass('android.graphics.Bitmap$CompressFormat');var d=LL.getEvent().getData();if(d==null)return;d=d.substring(0);if(d.length<2||d.charAt(0)!='I')return;var ip=parseInt(d.substring(1),10);if(isNaN(ip))return;var v=LL.getVariables();v.edit().setInteger('idIP',ip).commit();var root='/sdcard/LL/IconCache/IP'+ip;var dir=new File(root);if(!dir.exists())dir.mkdirs();var done=new File(root+'/.built');if(done.exists())return;Ticonpacks();var pm=LL.getContext().getPackageManager();var ipp=v.getString('IP'+ip);if(!ipp)return;var launch={};var a=pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),0);for(var i=0;i<a.size();i++)launch[''+a.get(i).activityInfo.packageName]=1;var r=pm.getResourcesForApplication(ipp);var xmlid=r.getIdentifier('appfilter','xml',ipp);if(!xmlid)return;var x=r.getXml(xmlid),e,c=0,seen={};while((e=x.next())!=1){try{if(e!=2)continue;if(String(x.getName())!='item')continue;var pkg=''+x.getAttributeValue(null,'component');var draw=''+x.getAttributeValue(null,'drawable');var p1=pkg.indexOf('{');if(p1==-1)continue;p1++;var p2=pkg.indexOf('/',p1);if(p2==-1)continue;pkg=pkg.substring(p1,p2);if(!launch[pkg])continue;if(seen[pkg])continue;seen[pkg]=1;var out=new File(root+'/'+pkg+'.png');if(out.exists()){c++;continue;}var res=r.getIdentifier(draw,'drawable',ipp);if(!res)continue;var b=r.getDrawable(res).getBitmap();if(!b)continue;var img=LL.createImage(b.getWidth(),b.getHeight());img.draw().drawBitmap(b,0,0,null);if(img.saveToFile(out.getAbsolutePath(),CompressFormat.PNG,100))c++;}catch(ex){}}done.createNewFile();Tc('IP'+ip+' cached '+c);}catch(e){Tc(e);}}",
-Ticonpacks:"Ticonpacks=function(){bindClass('android.content.Intent');var pm=LL.getContext().getPackageManager(),e=LL.getVariables().edit(),a=pm.queryIntentActivities(new Intent('org.adw.launcher.THEMES'),0);e.setInteger('IP_COUNT',a.size());e.setString('IP0','Default');e.setString('IPN0','Default');for(var i=0;i<a.size();i++){var r=a.get(i);e.setString('IP'+(i+1),r.activityInfo.packageName);e.setString('IPN'+(i+1),''+r.loadLabel(pm));}e.commit();return a.size();}",
-TUseIconPack:"TUseIconPack=function(id){var v=LL.getVariables(),m=v.getInteger('IP_COUNT');if(id<0)id=0;if(id>m)id=m;v.edit().setInteger('idIP',id).commit();return id;}",
-TGetIconPack:"TGetIconPack=function(){return LL.getVariables().getInteger('idIP');}",
-TIconCache:"TIconCache=function(pkg,ip,name){LL.getVariables().edit().setString('IP'+ip+'_'+pkg,name).commit();return name;}",
-Tshortcut:"imp('Tc','Tcn');Tshortcut=function(pkg,c,ip,x,y,it){try{bindClass('java.io.File');var pm=LL.getContext().getPackageManager();c=Tcn(c);if(x==null)x=0;if(y==null)y=0;if(ip==null)ip=0;var v=LL.getVariables(),m=v.getInteger('IP_COUNT');if(ip<0)ip=0;if(ip>m)ip=m;if(!it)it=pm.getLaunchIntentForPackage(pkg);if(!it)return Tc('Intent not found: '+pkg);var lbl=pkg;try{lbl=''+pm.getApplicationLabel(pm.getApplicationInfo(pkg,0));}catch(e){}var s=c.addShortcut(lbl,it,x,y);try{if(ip<=0){var d=pm.getApplicationIcon(pkg),b=d.getBitmap(),img=LL.createImage(b.getWidth(),b.getHeight());img.draw().drawBitmap(b,0,0,null);s.setDefaultIcon(img);}else{var p='/sdcard/LL/IconCache/IP'+ip+'/'+pkg+'.png';if(new File(p).exists()){try{var img=LL.createImage(p);if(img)s.setDefaultIcon(img);else throw 'img null';}catch(ex){var d=pm.getApplicationIcon(pkg),b=d.getBitmap(),img=LL.createImage(b.getWidth(),b.getHeight());img.draw().drawBitmap(b,0,0,null);s.setDefaultIcon(img);}}else{var d=pm.getApplicationIcon(pkg),b=d.getBitmap(),img=LL.createImage(b.getWidth(),b.getHeight());img.draw().drawBitmap(b,0,0,null);s.setDefaultIcon(img);}}}catch(e){Tc('Tshortcut icon error\\n'+e);}return s;}catch(e){Tc(e);return null;}}",
-Tcn:"Tcn=function(c){if(c===undefined||c===null)return LL.getCurrentDesktop();if(typeof c=='number')return LL.getContainerById(c);if(typeof c=='string')return LL.getContainerById(+c);return c;}",
+var g={
+
+// App Library
+AppAll:"AppAll=function(){var v=LL.getVariables();var a=v.getString('__apps');return a?JSON.parse(a):[];};",
+AppFind:"AppFind=function(q){var v=LL.getVariables();var apps=JSON.parse(v.getString('__apps'));var alias=JSON.parse(v.getString('__alias'));if(!apps||!alias)return null;q=q.toLowerCase();var i=alias[q];if(i!==undefined)return apps[i];for(var j=0;j<apps.length;j++){if(apps[j].l.indexOf(q)===0)return apps[j];}for(var j=0;j<apps.length;j++){if(apps[j].l.indexOf(q)>-1)return apps[j];}return null;};",
+AppSearch:"AppSearch=function(q,max){var v=LL.getVariables();var apps=JSON.parse(v.getString('__apps'));if(!apps)return[];q=q.toLowerCase();var matches=[];for(var i=0;i<apps.length&&matches.length<(max||20)*3;i++){var pos=apps[i].l.indexOf(q);if(pos>-1){var sc=pos===0?0:apps[i].l.indexOf(' '+q)>-1?1:2;matches.push({a:apps[i],s:sc});}}matches.sort(function(a,b){return a.s-b.s;});var result=[];for(var i=0;i<matches.length&&result.length<(max||20);i++)result.push(matches[i].a);return result;};",
+AppByPkg:"AppByPkg=function(pkg){var v=LL.getVariables();var pkgs=JSON.parse(v.getString('__pkg'));var apps=JSON.parse(v.getString('__apps'));if(!apps||!pkgs)return null;var i=pkgs[pkg];return i!==undefined?apps[i]:null;};",
+AppIntent:"AppIntent=function(a){if(!a||!a.p)return null;return new Intent(Intent.ACTION_MAIN).setComponent(new ComponentName(a.p,a.c)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);};",
+AppLaunch:"AppLaunch=function(a){var it=AppIntent(a);if(it)try{LL.getContext().startActivity(it);}catch(e){}};",
+AppIcon:"AppIcon=function(a){if(!a||!a.p)return null;if(!a._icon)try{a._icon=LL.getContext().getPackageManager().getActivityIcon(new ComponentName(a.p,a.c));}catch(e){}return a._icon||null;};",
+AppIconPack:"AppIconPack=function(a,ipId){var v=LL.getVariables();var ip=ipId||v.getInteger('idIP')||0;if(!a||!a.p||ip<=0)return null;try{var p='/sdcard/LL/IconCache/IP'+ip+'/'+a.p+'.png';if(new java.io.File(p).exists()){var bmp=BitmapFactory.decodeFile(p);if(bmp)return new BitmapDrawable(LL.getContext().getResources(),bmp);}}catch(e){}return null;};",
+AppIconPacks:"AppIconPacks=function(){var v=LL.getVariables();var p=v.getString('__iconPacks');return p?JSON.parse(p):[];};",
+AppSetIconPack:"AppSetIconPack=function(id){var v=LL.getVariables();v.edit().setInteger('idIP',id).commit();return id;};",
+AppGetIconPack:"AppGetIconPack=function(){return LL.getVariables().getInteger('idIP')||0;};",
+
+// Tapp — unified app access
+Tapp:"Tapp=(function(){var v=LL.getVariables();var apps=JSON.parse(v.getString('__apps')||'[]');var alias=JSON.parse(v.getString('__alias')||'{}');var pkgs=JSON.parse(v.getString('__pkg')||'{}');var activeIp=0;function resolve(a){return typeof a==='string'?apps[alias[a.toLowerCase()]]:a;}return{usePack:function(id){activeIp=(typeof id==='number')?id:0;},all:function(){return apps;},find:function(name){return resolve(name)||null;},byPkg:function(pkg){var idx=pkgs[pkg];return idx!==undefined?apps[idx]:null;},launch:function(name){var a=resolve(name);if(!a)return false;try{var it=new Intent(Intent.ACTION_MAIN).setComponent(new ComponentName(a.p,a.c)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);LL.getContext().startActivity(it);return true;}catch(e){return false;}},icon:function(name,overrideIp){var a=resolve(name);if(!a)return null;var ipId=(overrideIp!==undefined&&overrideIp!==null)?overrideIp:activeIp;if(ipId>0){try{var path='/sdcard/LL/IconCache/IP'+ipId+'/'+a.p+'.png';if(new java.io.File(path).exists()){var bmp=BitmapFactory.decodeFile(path);if(bmp)return new BitmapDrawable(LL.getContext().getResources(),bmp);}}catch(e){}}try{return LL.getContext().getPackageManager().getActivityIcon(new ComponentName(a.p,a.c));}catch(e){return null;}}};})();",
+
+// Tcomp — GlassButton component
+Tcomp:"Tcomp={GlassButton:function(Q,packId){var ctx=LL.getContext();var BOX={p:[16,12,16,12],gap:18,r:280,bg:'#33FFFFFF',bc:'#55FFFFFF',bw:2};var BLUR={on:true,radius:80};var ICON={margin:.10,wrapBg:'#00000000',wrapOn:true,wrapRad:0,minSize:24};var TEXT={c:'#FFFFFFFF',tm:1,ts:1,Ts:18,sidePad:25};function glass(v,rd){var r=rd||BOX.r;v.setClipToOutline(false);var d=new GradientDrawable();d.setColor(Color.TRANSPARENT);d.setCornerRadius(r);d.setStroke(BOX.bw,Color.parseColor(BOX.bc));v.setBackground(d);if(BLUR.on){try{v.setBackgroundBlur(BLUR.radius,[r,r,r,r,r,r,r,r]);if(typeof v.setBackgroundBlurAlpha==='function')v.setBackgroundBlurAlpha(1.0);if(typeof v.setBackgroundBlurCrop==='function')v.setBackgroundBlurCrop(true);if(typeof v.disableMiBackgroundContainBelow==='function')v.disableMiBackgroundContainBelow();if(typeof v.clearMiBackgroundBlendColor==='function')v.clearMiBackgroundBlendColor();if(typeof v.addMiBackgroundBlendColor==='function')v.addMiBackgroundBlendColor(Color.parseColor(BOX.bg),1);}catch(e){}}}var app=Tapp.find(Q);var appName=app?app.n:Q;var appIcon=Tapp.icon(Q,packId);var R=new FrameLayout(ctx);R.setMinimumWidth(20);R.setMinimumHeight(20);glass(R);var iw=new FrameLayout(ctx);iw.setClipToOutline(true);var iwGd=new GradientDrawable();iwGd.setColor(Color.parseColor(ICON.wrapBg));iwGd.setStroke(BOX.bw,Color.parseColor(BOX.bc));iw.setBackground(iwGd);iw.setVisibility(ICON.wrapOn?0:8);var iv=new ImageView(ctx);if(appIcon)iv.setImageDrawable(appIcon);iv.setScaleType(ImageView.ScaleType.FIT_CENTER);iw.addView(iv,new FrameLayout.LayoutParams(-1,-1));var lb=new TextView(ctx);lb.setText(appName);lb.setTextColor(Color.parseColor(TEXT.c));lb.setGravity(Gravity.CENTER);lb.setSingleLine(false);lb.setMaxLines(TEXT.tm);lb.setEllipsize(null);var W=new LinearLayout(ctx);W.setGravity(Gravity.CENTER);W.addView(iw);W.addView(lb);R.addView(W,new FrameLayout.LayoutParams(-1,-1));var iwLp=new LinearLayout.LayoutParams(0,0);var iLp=new FrameLayout.LayoutParams(0,0,Gravity.CENTER);var tLp=new LinearLayout.LayoutParams(0,0);R.addOnLayoutChangeListener(new View.OnLayoutChangeListener({onLayoutChange:function(v,l,t,r,b){var w=r-l,h=b-t;if(w<2||h<2)return;var H=w>h,c=Math.min(w,h),p=Math.round(c*.12),g=Math.round(c*.08);W.setPadding(p,p,p,p);var aw=w-p*2,ah=h-p*2,wrap,icon;var rr=Math.floor(c/2);var bg=R.getBackground();if(bg){try{if(bg.getClass&&bg.getClass().getName&&bg.getClass().getName().indexOf('LayerDrawable')>-1){var d0=bg.getDrawable(0);if(d0&&d0.setCornerRadius)d0.setCornerRadius(rr);}}catch(e){}glass(R,rr);}var words=appName.split(' ');var minWordW=0;lb.setTextSize(TypedValue.COMPLEX_UNIT_SP,TEXT.ts);var paint=lb.getPaint();for(var wi=0;wi<words.length;wi++){var ww=Math.ceil(paint.measureText(words[wi]));if(ww>minWordW)minWordW=ww;}var sidePad=Math.round(c*(TEXT.sidePad/200));if(H){W.setOrientation(0);wrap=ah;icon=Math.round(wrap*(1-ICON.margin*2));if(icon<ICON.minSize)icon=ICON.minSize;var lw=aw-wrap-g-sidePad;while(lw<minWordW&&sidePad>2){sidePad--;lw++;}while(lw<minWordW&&g>2){g--;lw++;}while(lw<minWordW&&p>2){p--;W.setPadding(p,p,p,p);aw=w-p*2;lw=aw-wrap-g-sidePad;}while(lw<minWordW&&wrap>c*.2){wrap-=2;icon=Math.round(wrap*(1-ICON.margin*2));if(icon<ICON.minSize)icon=ICON.minSize;lw=aw-wrap-g-sidePad;}iwLp.width=wrap;iwLp.height=wrap;iwLp.weight=0;iw.setLayoutParams(iwLp);iLp.width=icon;iLp.height=icon;iv.setLayoutParams(iLp);tLp.width=0;tLp.height=-1;tLp.weight=1;tLp.setMargins(g,0,sidePad,0);lb.setLayoutParams(tLp);lb.setGravity(17);lb.setSingleLine(false);lb.setMaxLines(TEXT.tm);lb.setEllipsize(null);lb.setAutoSizeTextTypeUniformWithConfiguration(TEXT.ts,TEXT.Ts*4,1,TypedValue.COMPLEX_UNIT_SP);}else{W.setOrientation(1);wrap=aw;icon=Math.round(wrap*(1-ICON.margin*2));if(icon<ICON.minSize)icon=ICON.minSize;var lh=ah-wrap-g-sidePad;while(lh<TEXT.ts*TEXT.tm*1.5&&sidePad>2){sidePad--;lh++;}while(lh<TEXT.ts*TEXT.tm*1.5&&g>2){g--;lh++;}while(lh<TEXT.ts*TEXT.tm*1.5&&p>2){p--;W.setPadding(p,p,p,p);ah=h-p*2;lh=ah-wrap-g-sidePad;}iwLp.width=wrap;iwLp.height=wrap;iwLp.weight=0;iw.setLayoutParams(iwLp);iLp.width=icon;iLp.height=icon;iv.setLayoutParams(iLp);tLp.width=-1;tLp.height=0;tLp.weight=1;tLp.setMargins(0,g,0,sidePad);lb.setLayoutParams(tLp);lb.setGravity(17);lb.setSingleLine(false);lb.setMaxLines(TEXT.tm);lb.setEllipsize(null);lb.setAutoSizeTextTypeUniformWithConfiguration(TEXT.ts,TEXT.Ts*4,1,TypedValue.COMPLEX_UNIT_SP);}if(ICON.wrapOn){var wr=ICON.wrapRad>0?Math.round(c*(ICON.wrapRad/200)):Math.round(wrap/2);iwGd.setCornerRadius(wr);}}}));R.setClickable(true);R.setOnTouchListener(new View.OnTouchListener({onTouch:function(v,e){var a=e.getAction();if(a===0){v.animate().scaleX(.95).scaleY(.95).setDuration(80).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();v.setAlpha(.8);}else if(a===1||a===3){v.animate().scaleX(1).scaleY(1).setDuration(200).setInterpolator(new android.view.animation.OvershootInterpolator(1.5)).start();v.setAlpha(1);}return false;}}));R.setOnClickListener(new View.OnClickListener({onClick:function(){Tapp.launch(Q);}}));return R;}};",
+
+// Core utilities
+imp:"imp=function(){for(var i=0;i<arguments.length;i++)eval(LL.getVariables().getString(arguments[i]));};",
 Tc:"Tc=function(x,t,c){var a=getActiveScreen().getContext();if(x===undefined)x='undefined';else if(x===null)x='null';else try{x=String(x);}catch(e){x='[object]';}if(arguments.length<2)t=1;if(arguments.length<3)c=1;if(c)a.getSystemService(a.CLIPBOARD_SERVICE).setText(x);if(t){bindClass('android.widget.Toast');Toast.makeText(a,x,0).show();}return x;}",
-imp:"imp=function(){for(var i=0;i<arguments.length;i++)eval(LL.getVariables().getString(arguments[i]));}",
-Titem:"Titem=function(n,c){try{if(typeof c=='number')c=LL.getContainerById(c);else if(typeof c=='string'){var d=LL.getDesktopByName(c);c=d?d:LL.getContainerById(+c);}if(!c)return null;var i=c.getItemByLabel(n);if(!i&&c.getAllItems){var a=c.getAllItems();for(var j=0;j<a.getLength();j++){var x=a.getAt(j);if(x.getName&&x.getName()==n){i=x;break;}}}return i;}catch(e){Tc(e);return null;}}"
+Tcn:"Tcn=function(c){if(c===undefined||c===null)return LL.getCurrentDesktop();if(typeof c=='number')return LL.getContainerById(c);if(typeof c=='string')return LL.getContainerById(+c);return c;}",
+Titem:"Titem=function(n,c){try{if(typeof c=='number')c=LL.getContainerById(c);else if(typeof c=='string'){var d=LL.getDesktopByName(c);c=d?d:LL.getContainerById(+c);}if(!c)return null;var i=c.getItemByLabel(n);if(!i&&c.getAllItems){var a=c.getAllItems();for(var j=0;j<a.getLength();j++){var x=a.getAt(j);if(x.getName&&x.getName()==n){i=x;break;}}}return i;}catch(e){Tc(e);return null;}}",
+Ticonpacks:"Ticonpacks=function(){return AppIconPacks().length-1;};",
+TUseIconPack:"TUseIconPack=function(id){return AppSetIconPack(id);};",
+TGetIconPack:"TGetIconPack=function(){return AppGetIconPack();};",
+TIconPackManager:"TIconPackManager=function(){try{var d=LL.getEvent().getData();if(d==null)return;d=d.substring(0);if(d.length<2||d.charAt(0)!='I')return;var ip=parseInt(d.substring(1),10);if(isNaN(ip))return;AppSetIconPack(ip);}catch(e){}}",
+Tshortcut:"imp('Tc','Tcn');Tshortcut=function(pkg,c,ip,x,y,it){try{var pm=LL.getContext().getPackageManager();c=Tcn(c);if(x==null)x=0;if(y==null)y=0;if(ip==null)ip=AppGetIconPack();var v=LL.getVariables(),m=v.getInteger('IP_COUNT');if(ip<0)ip=0;if(ip>m)ip=m;if(!it)it=pm.getLaunchIntentForPackage(pkg);if(!it)return Tc('Intent not found: '+pkg);var lbl=pkg;try{lbl=''+pm.getApplicationLabel(pm.getApplicationInfo(pkg,0));}catch(e){}var s=c.addShortcut(lbl,it,x,y);try{if(ip<=0){var d=pm.getApplicationIcon(pkg),b=d.getBitmap(),img=LL.createImage(b.getWidth(),b.getHeight());img.draw().drawBitmap(b,0,0,null);s.setDefaultIcon(img);}else{var p='/sdcard/LL/IconCache/IP'+ip+'/'+pkg+'.png';if(new java.io.File(p).exists()){try{var img=LL.createImage(p);if(img)s.setDefaultIcon(img);else throw 'img null';}catch(ex){var d=pm.getApplicationIcon(pkg),b=d.getBitmap(),img=LL.createImage(b.getWidth(),b.getHeight());img.draw().drawBitmap(b,0,0,null);s.setDefaultIcon(img);}}else{var d=pm.getApplicationIcon(pkg),b=d.getBitmap(),img=LL.createImage(b.getWidth(),b.getHeight());img.draw().drawBitmap(b,0,0,null);s.setDefaultIcon(img);}}}catch(e){Tc('Tshortcut icon error\\n'+e);}return s;}catch(e){Tc(e);return null;}}"
 };
 
 //================================================
 // SAVE VARIABLES
 //================================================
-
 var e=LL.getVariables().edit();
-
 for(var k in d) e.setInteger(k,d[k]);
 for(var k in t) e.setString(k,t[k]);
 for(var k in n) e.setInteger(k,n[k]);
 for(var k in ip) e.setInteger(k,ip[k]);
 for(var k in g) e.setString(k,g[k]);
-
-// Set app searcher config from as object
-for(var k in as) {
- if(typeof as[k] === 'number') {
-  e.setInteger(k, as[k]);
- } else {
-  e.setString(k, as[k]);
- }
-}
-
+e.setString("__apps",JSON.stringify(apps));
+e.setString("__alias",JSON.stringify(alias));
+e.setString("__pkg",JSON.stringify(pkgs));
+e.setString("__iconPacks",JSON.stringify(iconPacks));
+e.setInteger("__appVer",apps.length);
+e.setInteger("IP_COUNT",iconPacks.length-1);
+e.setString("IP0","default");e.setString("IPN0","Default");
+for(var i=1;i<iconPacks.length;i++){e.setString("IP"+i,iconPacks[i].pkg);e.setString("IPN"+i,iconPacks[i].name);}
+for(var k in as){if(typeof as[k]==='number')e.setInteger(k,as[k]);else e.setString(k,as[k]);}
 e.commit();
 var v=LL.getVariables();
 
 //================================================
-// IMPORT FUNCTIONS INTO CURRENT CONTEXT
+// IMPORT
 //================================================
-
 eval(v.getString("imp"));
-imp("Tc", "Tcn", "Titem", "Ticonpacks", "TUseIconPack", "TGetIconPack", "TIconCache", "Tshortcut", "TIconPackManager", "TDump");
+imp("Tc","Tcn","Titem","Ticonpacks","TUseIconPack","TGetIconPack","Tshortcut","TIconPackManager","Tapp","Tcomp","AppAll","AppFind","AppSearch","AppByPkg","AppIntent","AppLaunch","AppIcon","AppIconPack","AppIconPacks","AppSetIconPack","AppGetIconPack");
 
-///================================================
-// FINAL STATUS TOAST - FULL
 //================================================
-
-try {
- var ctx = getActiveScreen().getContext();
- bindClass("android.widget.Toast");
- 
- var result = "";
- 
- // Desktop IDs
- result += "📁 ";
- var first = true;
- for(var k in d) {
-  if(!first) result += " | ";
-  result += k + "=" + d[k];
-  first = false;
- }
- 
- // App Searcher Config
- result += "\n🔍 CID=" + as.CID + " MAX=" + as.MAX + " WIDTH=" + as.WIDTH + " RAD=" + as.RAD;
- 
- // Functions - show on multiple lines if needed
- var funcList = [];
- for(var k in g) {
-  funcList.push(k);
- }
- funcList.sort();
- result += "\n⚡ " + funcList.join(", ");
- 
- // Variables
- var allVars = LL.getVariables();
- result += "\n📊 CID=" + allVars.getInteger("CID") + " MAX=" + allVars.getInteger("MAX") + " IP=" + allVars.getInteger("idIP");
- 
- result += "\n✅ Ready!";
- 
- // Show toast with full text using setText
- var toast = Toast.makeText(ctx, "", Toast.LENGTH_LONG);
- toast.setText(result);
- toast.show();
- 
-} catch(e) {
- try {
-  Tc("✅ Setup Complete!", 1, 1);
- } catch(e2) {}
-}
+// TOAST
+//================================================
+bindClass("android.widget.Toast");
+Toast.makeText(getActiveScreen().getContext(),"📱 "+apps.length+" apps | 🎨 "+(iconPacks.length-1)+" packs | ✅ v11 Ready",0).show();
