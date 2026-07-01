@@ -1,0 +1,115 @@
+Ah—that explains everything. I found the relevant part of your environment script.
+
+Your initialization sequence is:
+
+1. Build a module registry
+
+You create an object g where every module is stored as a JavaScript source string, for example:
+
+var g = {
+    imp: "imp=function(){for(var i=0;i<arguments.length;i++)eval(LL.getVariables().getString(arguments[i]));};",
+    Tc: "Tc=function(...) {...}",
+    Tapp: "Tapp=(function(){...})();",
+    ...
+}
+
+So g is your module database.  
+
+
+---
+
+2. Save every module into LL Variables
+
+Later you do:
+
+for (var k in g)
+    e.setString(k, g[k]);
+
+which stores each module under its own variable name:
+
+imp  -> "imp=function(){...}"
+Tc   -> "Tc=function(){...}"
+Tapp -> "Tapp=(function(){...})();"
+...
+
+and then commit them. 
+
+
+---
+
+3. Bootstrap the loader
+
+Immediately after saving, you execute:
+
+eval(v.getString("imp"));
+
+This evaluates the stored source code for imp, creating a real global function in the current Rhino runtime. 
+
+
+---
+
+4. Use the loader
+
+Now imp exists, so you call:
+
+imp(
+  "Tc",
+  "Tcn",
+  "Titem",
+  "Tapp",
+  "Tcomp",
+  "TAnim",
+  ...
+);
+
+The implementation of imp is simply:
+
+imp = function() {
+    for (var i = 0; i < arguments.length; i++)
+        eval(LL.getVariables().getString(arguments[i]));
+};
+
+So for each requested module it:
+
+1. Reads the source string from LL Variables.
+
+
+2. evals it.
+
+
+3. Defines the corresponding function/object globally in the current Rhino runtime. 
+
+
+
+
+---
+
+Why imp() works later without another eval
+
+The key is that you already executed eval(v.getString("imp")) during the environment startup. That created the imp function.
+
+After that, any later script can simply write:
+
+imp("Tapp", "Tc", "TAnim");
+
+because imp is already resident in the Rhino runtime. It doesn't need to be recreated unless the launcher process is restarted.
+
+
+---
+
+In effect, you've built a module system
+
+Conceptually it's very similar to this:
+
+Environment Script
+    │
+    ├── Build modules as source strings
+    ├── Save them to LL Variables
+    ├── eval("imp")
+    └── imp(...) loads core modules
+
+Later Script
+    │
+    └── imp("Tapp","TAnim","Tc")
+
+So LL Variables act as your module storage, while imp acts as a module loader, and eval is only needed once to bootstrap that loader. After that, the framework loads additional modules on demand. It's a clever approach for working within Lightning Launcher's Rhino environment.
