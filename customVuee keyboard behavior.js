@@ -7,6 +7,7 @@ try {
     bindClass("android.view.Gravity");
     bindClass("android.view.View");
     bindClass("android.view.WindowInsets");
+    bindClass("android.graphics.Rect"); // Added for absolute positioning
 
     var ctx = LL.getContext();
     var root = new FrameLayout(ctx);
@@ -22,7 +23,7 @@ try {
     searchContainer.setBackground(bg);
 
     var searchBox = new EditText(ctx);
-    searchBox.setHint("WindowInsets Sync...");
+    searchBox.setHint("Absolute Position Sync...");
     searchBox.setTextColor(Color.WHITE);
     searchBox.setHintTextColor(Color.parseColor("#88FFFFFF"));
     searchBox.setSingleLine(true);
@@ -39,32 +40,40 @@ try {
     searchContainer.addView(searchBox, new LinearLayout.LayoutParams(-1, -2));
     root.addView(searchContainer, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
 
-    // --- SCRIPT 2: WINDOW INSETS METHOD ---
+    // --- THE "EXACT OVERLAP" FIX ---
     root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener({
         onApplyWindowInsets: function(v, insets) {
-            var kbHeight = 0;
+            var imeHeight = 0;
             try {
-                // Try modern Android 11+ API
-                var Type = android.view.WindowInsets.Type;
-                var ime = insets.getInsets(Type.ime());
-                var nav = insets.getInsets(Type.navigationBars());
-                kbHeight = Math.max(0, ime.bottom - nav.bottom);
+                // Get raw keyboard height from absolute bottom of screen
+                imeHeight = insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
             } catch(e) {
-                // Fallback for Rhino JS or older Android versions
-                var sysBottom = insets.getSystemWindowInsetBottom();
-                var stableBottom = insets.getStableInsetBottom();
-                kbHeight = Math.max(0, sysBottom - stableBottom);
+                imeHeight = insets.getSystemWindowInsetBottom();
             }
             
-            // Apply the offset directly
-            searchContainer.setTranslationY(-kbHeight);
+            // Get the total absolute screen height
+            var screenHeight = root.getRootView().getHeight();
             
-            // Pass the insets down the view tree so LL doesn't break
+            // Calculate exactly where the top edge of the keyboard is on the screen
+            var keyboardTop = screenHeight - imeHeight;
+            
+            // Get exactly where the bottom of our Custom View is on the screen
+            var r = new Rect();
+            root.getGlobalVisibleRect(r);
+            
+            // How much does the keyboard physically overlap our specific view?
+            var overlap = r.bottom - keyboardTop;
+
+            // If overlap is positive, the keyboard is covering us. Push up exactly that much.
+            var targetOffset = overlap > 0 ? -overlap : 0;
+            
+            searchContainer.setTranslationY(targetOffset);
+            
             return insets;
         }
     }));
     
-    // Request initial insets to trigger the listener
+    // Request initial insets to trigger the listener immediately
     root.requestApplyInsets();
 
     root.setOnClickListener(new View.OnClickListener({
@@ -79,7 +88,7 @@ try {
 
 } catch (e) {
     var err = new android.widget.TextView(LL.getContext());
-    err.setText("Err 2: " + e.toString());
+    err.setText("Err 3: " + e.toString());
     err.setTextColor(android.graphics.Color.RED);
     return err;
 }
